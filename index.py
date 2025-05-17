@@ -68,22 +68,29 @@ root.configure(bg='#1e1e1e')
 root.state('zoomed')
 
 # Logo
-logo_label = tk.Label(root, text="LOGO", bg='#1e1e1e', fg='white', font=('Arial', 20))
+logo_img = Image.open("logo.png").resize((200, 80))  # Ajusta el tamaño si lo deseas
+logo_tk = ImageTk.PhotoImage(logo_img)
+logo_label = tk.Label(root, image=logo_tk, bg='#1e1e1e')
+logo_label.image = logo_tk  # Evita que la imagen sea recolectada por el GC
 logo_label.place(x=30, y=20)
 
-# 🟠 Barra búsqueda en esquina superior derecha
-search_canvas = tk.Canvas(root, width=300, height=35, bg='#1e1e1e', highlightthickness=0)
-search_canvas.place(relx=1.0, x=-320, y=26, anchor="ne")  # ESQUINA DERECHA
+# 🟠 Barra búsqueda en esquina superior derecha (bien redondeada)
+search_width = 320
+search_height = 40
+search_y = 40  # Centrado vertical respecto al logo
 
-search_canvas.create_oval(0, 0, 35, 35, fill='#FF9900', outline='#FF9900')
-search_canvas.create_oval(300-35, 0, 300, 35, fill='#FF9900', outline='#FF9900')
-search_canvas.create_rectangle(17, 0, 300-17, 35, fill='#FF9900', outline='#FF9900')
+search_canvas = tk.Canvas(root, width=search_width, height=search_height, bg='#1e1e1e', highlightthickness=0)
+search_canvas.place(relx=1.0, x=-30, y=search_y, anchor="ne")
+
+radius = search_height // 2
+# Solo une los óvalos con el rectángulo central, sin sobresalir
+search_canvas.create_oval(0, 0, search_height, search_height, fill='#FF9900', outline='#FF9900')
+search_canvas.create_oval(search_width-search_height, 0, search_width, search_height, fill='#FF9900', outline='#FF9900')
+search_canvas.create_rectangle(radius, 0, search_width-radius, search_height, fill='#FF9900', outline='#FF9900')
 
 search_entry = tk.Entry(root, font=('Arial', 12), bd=0, relief='flat', bg='#FF9900', fg='black')
-search_entry.place(relx=1.0, x=-300, y=30, width=220, height=25, anchor="ne")
-
-search_btn = tk.Button(root, text="🔍", font=('Arial', 12), bg='#FF9900', fg='black', bd=0, relief='flat', cursor="hand2")
-search_btn.place(relx=1.0, x=-50, y=30, anchor="ne")
+search_entry.place(relx=1.0, x=-30, y=search_y, anchor="ne", width=search_width-radius*2, height=search_height)
+search_entry.bind("<FocusIn>", lambda e: search_entry.config(bg='#FF9900', fg='black'))
 
 # Frame + Scroll
 canvas = tk.Canvas(root, bg='#1e1e1e', highlightthickness=0)
