@@ -1,5 +1,6 @@
 import flet as ft
 from services.tmdb_api import TMDBApi
+from ui.comentarios import ComentariosUI
 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#000000"
@@ -18,12 +19,13 @@ RESEÑAS_EJEMPLO = [
 
 
 class DetallePeliculaContent(ft.Column): # Cambiado a Content
-    def __init__(self, page: ft.Page, tmdb_api: TMDBApi, pelicula, mostrar_catalogo_callback):
+    def __init__(self, page: ft.Page, tmdb_api: TMDBApi, pelicula, mostrar_catalogo_callback, mostrar_comentarios_callback):
         super().__init__(expand=True, scroll="auto") # Permite que la columna principal sea scrollable
         self.page = page
         self.tmdb_api = tmdb_api
         self.pelicula = pelicula
         self.mostrar_catalogo_callback = mostrar_catalogo_callback
+        self.mostrar_comentarios_callback = mostrar_comentarios_callback
         self.spacing = 0 # Eliminar espaciado por defecto
 
         detalle = self.tmdb_api.obtener_detalle_pelicula(pelicula["id"])
@@ -77,7 +79,13 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
 
         # Botones (Enviar Reseña, Comprar Entrada, y ahora Trailer)
         botones_row_controls = [
-             ft.ElevatedButton("Enviar Reseña", bgcolor="#D9D9D9", color="#000000", style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))),
+             ft.ElevatedButton(
+                 "Enviar Reseña",
+                 bgcolor="#D9D9D9",
+                 color="#000000",
+                 style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20)),
+                 on_click=lambda e: self.mostrar_comentarios_callback(self.pelicula)
+             ),
              ft.ElevatedButton("Comprar Entrada", bgcolor=COLOR_NARANJA, color="#000000", style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))),
         ]
 

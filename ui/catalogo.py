@@ -30,7 +30,7 @@ class CatalogoContent(ft.Column): # Cambiado a Content para evitar confusión co
                 ft.Container(
                     content=ft.Column(
                         [ft.Checkbox(label=genero["name"], value=False, 
-                            on_change=lambda e, g=genero: self.toggle_genero(g, e.control.value))
+                                   on_change=lambda e, g=genero: self.toggle_genero(g, e.control.value))
                          for genero in self.tmdb_api.generos],
                         scroll=ft.ScrollMode.AUTO,
                         height=200

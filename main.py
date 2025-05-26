@@ -2,6 +2,7 @@ import flet as ft
 from services.tmdb_api import TMDBApi
 from ui.catalogo import CatalogoContent 
 from ui.detalle_pelicula import DetallePeliculaContent 
+from ui.comentarios import ComentariosUI
 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#000000"
@@ -48,10 +49,20 @@ def main(page: ft.Page):
     # Usamos un ft.Column que expande para ocupar el espacio restante
     main_content_area = ft.Column(expand=True, scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER)
 
+    def mostrar_comentarios(pelicula):
+        # Aquí puedes implementar la lógica para mostrar la pantalla de comentarios
+        print("Mostrar comentarios para:", pelicula["title"])
+        # Ejemplo: limpiar y mostrar ComentariosUI si tienes versión Flet
+        # main_content_area.controls.clear()
+        # main_content_area.controls.append(ComentariosUI(page, pelicula))
+        # page.update()
+
     def mostrar_detalle(pelicula):
         # Limpiar el área de contenido principal y agregar la vista de detalle
         main_content_area.controls.clear()
-        detalle_content = DetallePeliculaContent(page, tmdb_api, pelicula, mostrar_catalogo)
+        detalle_content = DetallePeliculaContent(
+            page, tmdb_api, pelicula, mostrar_catalogo, mostrar_comentarios
+        )
         main_content_area.controls.append(detalle_content)
         page.update()
 
