@@ -1,52 +1,119 @@
-import tkinter as tk
-from tkinter import font
+import flet as ft
 
-class ComentariosUI(tk.Frame):
-    def __init__(self, master=None, pelicula=None):
-        super().__init__(master, bg="#000000")
+COLOR_NARANJA = "#FF9D00"
+COLOR_FONDO = "#000000"
+COLOR_TEXTO = "#FFFFFF"
+COLOR_GRIS_CLARO = "#D9D9D9"
+
+class ComentariosUI(ft.Column):
+    def __init__(self, page: ft.Page, pelicula=None, volver_callback=None):
+        super().__init__(expand=True, scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER)
+        self.page = page
         self.pelicula = pelicula
-        self.pack(fill="both", expand=True)
+        self.volver_callback = volver_callback # Guardar el callback para volver
+        self.spacing = 20 # Espaciado entre elementos
+
+        # Referencias a los campos de entrada para acceder a sus valores después
+        self.campo_nombre_ref = ft.Ref[ft.TextField]()
+        self.campo_resena_ref = ft.Ref[ft.TextField]()
+
         self.create_widgets()
 
     def create_widgets(self):
-        # Fuente grande y negrita para el título
-        titulo_font = font.Font(family="Arial", size=22, weight="bold")
-        label_font = font.Font(family="Arial", size=12, weight="bold")
-
         # Título
-        titulo = tk.Label(self, text="Deja aqui tu reseña de la pelicula !!!!!", bg="#000000", fg="#FFFFFF", font=titulo_font)
-        titulo.pack(pady=(20, 20))
+        titulo = ft.Text(
+            f"Deja tu reseña para: {self.pelicula.get('title', 'Película desconocida')}",
+            color=COLOR_TEXTO,
+            size=24,
+            weight=ft.FontWeight.BOLD
+        )
 
-        # Nombre de la persona
-        frame_nombre = tk.Frame(self, bg="#000000")
-        frame_nombre.pack(pady=(0, 10), padx=40, fill="x")
-        label_nombre = tk.Label(frame_nombre, text="Nombre de la persona:", bg="#D9D9D9", fg="#000000", font=label_font, anchor="w")
-        label_nombre.pack(fill="x", padx=0, pady=0)
-        entry_nombre = tk.Entry(frame_nombre, bg="#D9D9D9", fg="#000000", relief="flat", font=("Arial", 12))
-        entry_nombre.pack(fill="x", padx=0, pady=0, ipady=4)
+        # Campo de nombre
+        label_nombre = ft.Text("Nombre de la persona:", color=COLOR_TEXTO, size=14, weight=ft.FontWeight.BOLD)
+        campo_nombre = ft.TextField(
+            ref=self.campo_nombre_ref,
+            bgcolor=COLOR_GRIS_CLARO,
+            color=COLOR_FONDO, # Color del texto de entrada (negro)
+            border_radius=10,
+            width=400,
+            border_color=COLOR_GRIS_CLARO,
+            content_padding=ft.padding.symmetric(horizontal=15, vertical=10),
+            height=40, # Ajustar altura
+        )
 
-        # Nombre de la película
-        frame_pelicula = tk.Frame(self, bg="#000000")
-        frame_pelicula.pack(pady=(0, 10), padx=40, fill="x")
-        label_pelicula = tk.Label(frame_pelicula, text="Nombre de la pelicula:", bg="#D9D9D9", fg="#000000", font=label_font, anchor="w")
-        label_pelicula.pack(fill="x", padx=0, pady=0)
-        entry_pelicula = tk.Entry(frame_pelicula, bg="#D9D9D9", fg="#000000", relief="flat", font=("Arial", 12))
-        entry_pelicula.pack(fill="x", padx=0, pady=0, ipady=4)
+        # Campo de reseña
+        label_resena = ft.Text("Reseña de la pelicula:", color=COLOR_TEXTO, size=14, weight=ft.FontWeight.BOLD)
+        campo_resena = ft.TextField(
+            ref=self.campo_resena_ref,
+            bgcolor=COLOR_GRIS_CLARO,
+            color=COLOR_FONDO,
+            border_radius=10,
+            multiline=True, # Permite múltiples líneas
+            min_lines=8, # Aumentar tamaño
+            max_lines=8,
+            width=400,
+            border_color=COLOR_GRIS_CLARO,
+            content_padding=ft.padding.symmetric(horizontal=15, vertical=10),
+        )
 
-        # Reseña
-        frame_resena = tk.Frame(self, bg="#000000")
-        frame_resena.pack(pady=(0, 10), padx=40, fill="both", expand=True)
-        label_resena = tk.Label(frame_resena, text="Reseña de la pelicula:", bg="#D9D9D9", fg="#000000", font=label_font, anchor="w")
-        label_resena.pack(fill="x", padx=0, pady=0)
-        text_resena = tk.Text(frame_resena, bg="#D9D9D9", fg="#000000", relief="flat", font=("Arial", 12), height=10, wrap="word")
-        text_resena.pack(fill="both", padx=0, pady=0, expand=True)
+        # Botón para enviar reseña
+        boton_enviar = ft.ElevatedButton(
+            "Enviar Reseña",
+            bgcolor=COLOR_NARANJA,
+            color=COLOR_TEXTO,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20)),
+            on_click=self.enviar_resena 
+        )
 
-        # Bordes redondeados no son nativos en Tkinter, pero el efecto visual se logra con el color y padding.
+        # Botón para volver
+        boton_volver = ft.ElevatedButton(
+            "Volver",
+            on_click=lambda e: self.volver_callback(self.pelicula) if self.volver_callback else None,
+            bgcolor="#555555", # Color gris oscuro para el botón de volver
+            color=COLOR_TEXTO,
+            style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20)),
+        )
 
-# Para probar la interfaz:
-if __name__ == "__main__":
-    root = tk.Tk()
-    root.title("Comentarios")
-    root.geometry("900x500")
-    app = ComentariosUI(master=root)
-    app.mainloop()
+        self.controls = [
+            titulo,
+            label_nombre,
+            campo_nombre,
+            label_resena,
+            campo_resena,
+            boton_enviar,
+            boton_volver, 
+        ]
+
+    def enviar_resena(self, e):
+        # Obtener los valores de los campos
+        nombre = self.campo_nombre_ref.current.value.strip() if self.campo_nombre_ref.current else ""
+        resena = self.campo_resena_ref.current.value.strip() if self.campo_resena_ref.current else ""
+
+        # Validar que los campos no estén vacíos
+        if not nombre or not resena:
+            # Mostrar mensaje de error
+            self.page.show_snack_bar(
+                ft.SnackBar(
+                    content=ft.Text("Por favor, completa todos los campos"),
+                    bgcolor=COLOR_NARANJA
+                )
+            )
+            return
+
+        # Aquí iría la lógica para guardar la reseña
+        # Por ahora solo mostramos un mensaje de éxito
+        self.page.show_snack_bar(
+            ft.SnackBar(
+                content=ft.Text("¡Reseña enviada con éxito!"),
+                bgcolor=COLOR_NARANJA
+            )
+        )
+
+        # Limpiar los campos
+        if self.campo_nombre_ref.current:
+            self.campo_nombre_ref.current.value = ""
+        if self.campo_resena_ref.current:
+            self.campo_resena_ref.current.value = ""
+
+        # Actualizar la página
+        self.page.update()

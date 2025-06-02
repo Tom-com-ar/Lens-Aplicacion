@@ -116,7 +116,7 @@ class CatalogoContent(ft.Column): # Cambiado a Content para evitar confusión co
         # --- Grilla de tarjetas con 6 columnas fijas ---
         self.grilla = ft.GridView(
             expand=True,
-            runs_count=6,  # SIEMPRE 6 COLUMNAS
+            runs_count=10,  # SIEMPRE 6 COLUMNAS
             max_extent=180,  # Ancho máximo de cada tarjeta
             child_aspect_ratio=0.6,  # Relación ancho/alto
             spacing=10,
@@ -191,8 +191,25 @@ class CatalogoContent(ft.Column): # Cambiado a Content para evitar confusión co
         self.filtrar_peliculas()
         self.page.update()
 
-    def filtrar_peliculas(self):
+    def filtrar_por_texto(self, query):
+        # Guarda el query para que el filtro combinado lo use
+        self.query_busqueda = query
+        self.filtrar_peliculas() # Llama al método de filtrado general
+        self.page.update()
+
+    def filtrar_peliculas(self, query=""):
+        # Usar el query guardado si no se pasa uno directamente
+        current_query = query if query else getattr(self, 'query_busqueda', '')
+
         peliculas_filtradas = self.peliculas_catalogo.copy()
+
+        # Filtrar por texto (título o sinopsis)
+        if current_query:
+            peliculas_filtradas = [
+                p for p in peliculas_filtradas
+                if current_query.lower() in p.get("title", "").lower() or \
+                   current_query.lower() in p.get("overview", "").lower()
+            ]
 
         # Filtrar por géneros
         if self.filtros_activos["generos"]:
@@ -282,4 +299,7 @@ class CatalogoContent(ft.Column): # Cambiado a Content para evitar confusión co
 
     def cargar_peliculas(self):
         self.peliculas_catalogo = self.tmdb_api.obtener_peliculas_populares()
+        self.peliculas_catalizadas = self.peliculas_catalogo.copy() # Lista para catalogo filtrado
         self.mostrar_peliculas(self.peliculas_catalogo)
+        # Inicializar query de búsqueda vacío
+        self.query_busqueda = ""

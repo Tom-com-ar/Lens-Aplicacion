@@ -1,6 +1,7 @@
 import flet as ft
 from services.tmdb_api import TMDBApi
 from ui.comentarios import ComentariosUI
+import webbrowser
 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#000000"
@@ -15,17 +16,38 @@ RESEÑAS_EJEMPLO = [
     {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
     {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
     {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
+    {"usuario": "Juan Pérez", "texto": "¡Excelente película! Me encantó la historia y los personajes."},
+    {"usuario": "Ana López", "texto": "Muy buena, la recomiendo para ver en familia."},
+    {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
+    {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
+    {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
+    {"usuario": "Juan Pérez", "texto": "¡Excelente película! Me encantó la historia y los personajes."},
+    {"usuario": "Ana López", "texto": "Muy buena, la recomiendo para ver en familia."},
+    {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
+    {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
+    {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
+    {"usuario": "Juan Pérez", "texto": "¡Excelente película! Me encantó la historia y los personajes."},
+    {"usuario": "Ana López", "texto": "Muy buena, la recomiendo para ver en familia."},
+    {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
+    {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
+    {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
+    {"usuario": "Juan Pérez", "texto": "¡Excelente película! Me encantó la historia y los personajes."},
+    {"usuario": "Ana López", "texto": "Muy buena, la recomiendo para ver en familia."},
+    {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
+    {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
+    {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
 ]
 
 
 class DetallePeliculaContent(ft.Column): # Cambiado a Content
-    def __init__(self, page: ft.Page, tmdb_api: TMDBApi, pelicula, mostrar_catalogo_callback, mostrar_comentarios_callback):
-        super().__init__(expand=True, scroll="auto") # Permite que la columna principal sea scrollable
+    def __init__(self, page: ft.Page, tmdb_api: TMDBApi, pelicula, mostrar_catalogo_callback, mostrar_comentarios_callback, mostrar_compra_entradas_callback):
+        super().__init__(expand=True, scroll="auto") 
         self.page = page
         self.tmdb_api = tmdb_api
         self.pelicula = pelicula
         self.mostrar_catalogo_callback = mostrar_catalogo_callback
         self.mostrar_comentarios_callback = mostrar_comentarios_callback
+        self.mostrar_compra_entradas_callback = mostrar_compra_entradas_callback
         self.spacing = 0 # Eliminar espaciado por defecto
 
         detalle = self.tmdb_api.obtener_detalle_pelicula(pelicula["id"])
@@ -56,6 +78,7 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
         trailer_url = None
         for video in videos:
             if video.get("site") == "YouTube" and video.get("type") == "Trailer":
+                # Usar la URL normal de visualización para abrir en el navegador
                 trailer_url = f"https://www.youtube.com/watch?v={video['key']}"
                 break # Encontramos el primer trailer y salimos
 
@@ -86,7 +109,8 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
                  style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20)),
                  on_click=lambda e: self.mostrar_comentarios_callback(self.pelicula)
              ),
-             ft.ElevatedButton("Comprar Entrada", bgcolor=COLOR_NARANJA, color="#000000", style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))),
+             ft.ElevatedButton("Comprar Entrada", bgcolor=COLOR_NARANJA, color="#000000", style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20)), 
+                on_click=lambda e: self.mostrar_compra_entradas_callback(self.pelicula)),
         ]
 
         if trailer_url:
@@ -94,8 +118,8 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
             botones_row_controls.append(
                  ft.ElevatedButton(
                      "Ver Trailer",
-                     icon="play_arrow", # Usando string para el ícono
-                     on_click=lambda e, url=trailer_url: page.launch_url(url),
+                     icon="play_arrow",
+                     on_click=lambda e, url=trailer_url: webbrowser.open(url), # Abrir en navegador
                      bgcolor=COLOR_FONDO,
                      color=COLOR_TEXTO,
                      style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))
@@ -131,18 +155,21 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
         )
 
 
-        # --- Reseñas de usuarios ---
-        reseñas_ui = []
-        if RESEÑAS_EJEMPLO:
-             reseñas_ui.append(
-                ft.Container(
-                    content=ft.Text("Reseñas de usuarios", color=COLOR_TEXTO, size=18, weight=ft.FontWeight.BOLD),
-                    margin=ft.margin.only(top=40, bottom=10, left=10) # Margen izquierdo para alinear
-                )
-             )
-             for i, r in enumerate(RESEÑAS_EJEMPLO):
-                reseñas_ui.append(
+        # --- Botón Volver ---
+        boton_volver = ft.Container(
+             content=ft.ElevatedButton("Volver al catálogo", on_click=lambda e: self.mostrar_catalogo_callback(), bgcolor=COLOR_NARANJA, color=COLOR_TEXTO, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))),
+             margin=ft.margin.only(top=40, bottom=20, left=10)
+        )
+
+        # --- Contenedor de reseñas con scroll individual ---
+        reseñas_container = ft.Container(
+            content=ft.Column(
+                [
                     ft.Container(
+                        content=ft.Text("Reseñas de usuarios", color=COLOR_TEXTO, size=18, weight=ft.FontWeight.BOLD),
+                        margin=ft.margin.only(bottom=10, left=10)
+                    ),
+                    *[ft.Container(
                         content=ft.Row([
                             ft.CircleAvatar(content=ft.Text(r["usuario"][0], size=18), color=COLOR_TEXTO, bgcolor=COLOR_NARANJA, radius=25),
                             ft.Container(
@@ -153,31 +180,31 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
                                 margin=ft.margin.only(left=15),
                                 expand=True
                             ),
-                        ], alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.START), # Alineación al inicio
+                        ], alignment=ft.MainAxisAlignment.START, vertical_alignment=ft.CrossAxisAlignment.START),
                         bgcolor="#222222",
                         border_radius=20,
-                        padding=ft.padding.symmetric(horizontal=20, vertical=15), # Más padding
+                        padding=ft.padding.symmetric(horizontal=20, vertical=15),
                         shadow=ft.BoxShadow(blur_radius=10, color=COLOR_SOMBRA, offset=ft.Offset(2, 4)),
-                        margin=ft.margin.only(top=15, bottom=0), # Margen arriba
-                        width=850, # Ancho fijo para las reseñas (ajustar si es necesario)
-                    )
-                )
-
-
-        # --- Botón Volver ---
-        boton_volver = ft.Container(
-             content=ft.ElevatedButton("Volver al catálogo", on_click=lambda e: self.mostrar_catalogo_callback(), bgcolor=COLOR_NARANJA, color=COLOR_TEXTO, style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))),
-             margin=ft.margin.only(top=40, bottom=40, left=10) # Margen arriba y abajo, y a la izquierda
+                        margin=ft.margin.only(top=15, bottom=0),
+                        width=850,
+                    ) for r in RESEÑAS_EJEMPLO]
+                ],
+                scroll=ft.ScrollMode.AUTO,
+                spacing=0,
+            ),
+            height=400,  # Altura fija para el contenedor de reseñas
+            width=900,
+            border_radius=20,
+            bgcolor="#1A1A1A",
+            padding=ft.padding.all(20),
         )
 
-
         # --- Contenedor principal de la vista de detalle ---
-        # Este contenedor principal es lo que agregamos a page.controls en main
         self.controls = [
             seccion_principal,
-            *reseñas_ui,
             boton_volver,
+            reseñas_container,
         ]
 
         # Ajustar alineación de los controles en la columna
-        self.horizontal_alignment = ft.CrossAxisAlignment.CENTER # Centrar todo el contenido horizontalmente
+        self.horizontal_alignment = ft.CrossAxisAlignment.CENTER
