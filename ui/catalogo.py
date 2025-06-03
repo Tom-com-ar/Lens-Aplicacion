@@ -6,85 +6,35 @@ COLOR_FONDO = "#000000"
 COLOR_TEXTO = "#FFFFFF"
 COLOR_SOMBRA = "#00000022"
 
-class CatalogoContent(ft.Column): # Cambiado a Content para evitar confusión con Vista completa
+class CatalogoContent(ft.Column):
     def __init__(self, page: ft.Page, tmdb_api: TMDBApi, mostrar_detalle_callback):
-        super().__init__(expand=True, scroll="auto")
+        super().__init__()
         self.page = page
         self.tmdb_api = tmdb_api
         self.mostrar_detalle_callback = mostrar_detalle_callback
-        self.spacing = 0
-        self.peliculas_catalogo = []  # Lista para almacenar todas las películas
+        
+        # Inicializar filtros_activos
         self.filtros_activos = {
             "generos": [],
+            "duracion_desde": 0,
+            "duracion_hasta": 240,
             "año_desde": None,
-            "año_hasta": None,
-            "duracion_desde": None,
-            "duracion_hasta": None
+            "año_hasta": None
         }
 
-        # --- Diálogo de filtros ---
-        self.dialogo_filtros = ft.AlertDialog(
-            title=ft.Text("Filtros", color=COLOR_TEXTO),
-            content=ft.Column([
-                ft.Text("Géneros", color=COLOR_TEXTO, weight=ft.FontWeight.BOLD),
-                ft.Container(
-                    content=ft.Column(
-                        [ft.Checkbox(label=genero["name"], value=False, 
-                                   on_change=lambda e, g=genero: self.toggle_genero(g, e.control.value))
-                         for genero in self.tmdb_api.generos],
-                        scroll=ft.ScrollMode.AUTO,
-                        height=200
-                    ),
-                    padding=10
-                ),
-                ft.Divider(color=COLOR_NARANJA),
-                ft.Text("Año de estreno", color=COLOR_TEXTO, weight=ft.FontWeight.BOLD),
-                ft.Row([
-                    ft.TextField(
-                        label="Desde",
-                        width=100,
-                        bgcolor=COLOR_FONDO,
-                        border_color=COLOR_NARANJA,
-                        color=COLOR_TEXTO,
-                        on_change=lambda e: self.actualizar_filtro("año_desde", e.control.value)
-                    ),
-                    ft.TextField(
-                        label="Hasta",
-                        width=100,
-                        bgcolor=COLOR_FONDO,
-                        border_color=COLOR_NARANJA,
-                        color=COLOR_TEXTO,
-                        on_change=lambda e: self.actualizar_filtro("año_hasta", e.control.value)
-                    ),
-                ]),
-                ft.Divider(color=COLOR_NARANJA),
-                ft.Text("Duración (minutos)", color=COLOR_TEXTO, weight=ft.FontWeight.BOLD),
-                ft.Row([
-                    ft.TextField(
-                        label="Desde",
-                        width=100,
-                        bgcolor=COLOR_FONDO,
-                        border_color=COLOR_NARANJA,
-                        color=COLOR_TEXTO,
-                        on_change=lambda e: self.actualizar_filtro("duracion_desde", e.control.value)
-                    ),
-                    ft.TextField(
-                        label="Hasta",
-                        width=100,
-                        bgcolor=COLOR_FONDO,
-                        border_color=COLOR_NARANJA,
-                        color=COLOR_TEXTO,
-                        on_change=lambda e: self.actualizar_filtro("duracion_hasta", e.control.value)
-                    ),
-                ]),
-            ], spacing=20),
-            actions=[
-                ft.TextButton("Limpiar", on_click=self.limpiar_filtros),
-                ft.TextButton("Aplicar", on_click=self.aplicar_filtros),
-            ],
-            actions_alignment=ft.MainAxisAlignment.END,
-            bgcolor=COLOR_FONDO,
+        # Variables para el rango de duración
+        self.duracion_min = 0
+        self.duracion_max = 240
+        
+        # Texto para mostrar el rango seleccionado
+        self.texto_rango = ft.Text(
+            f"Duración: {self.filtros_activos['duracion_desde']} - {self.filtros_activos['duracion_hasta']} minutos",
+            color=COLOR_TEXTO,
+            size=12
         )
+
+        # Modificar el diálogo de filtros
+        self.crear_dialogo_filtros()
 
         # --- Título y botón de filtros ---
         self.titulo_filtros = ft.Container(
@@ -166,27 +116,107 @@ class CatalogoContent(ft.Column): # Cambiado a Content para evitar confusión co
         else:
             self.filtros_activos[filtro] = None
 
+    def actualizar_rango_duracion(self, e):
+        """Actualiza los filtros con el nuevo rango de duración"""
+        self.filtros_activos["duracion_desde"] = int(e.control.start_value)
+        self.filtros_activos["duracion_hasta"] = int(e.control.end_value)
+        # Actualizar el texto que muestra el rango
+        self.texto_rango.value = f"Duración: {int(e.control.start_value)} - {int(e.control.end_value)} minutos"
+        self.texto_rango.update()
+
+    def crear_dialogo_filtros(self):
+        self.dialogo_filtros = ft.AlertDialog(
+            title=ft.Text("Filtros", color=COLOR_TEXTO),
+            content=ft.Column([
+                ft.Text("Géneros", color=COLOR_TEXTO, weight=ft.FontWeight.BOLD),
+                ft.Container(
+                    content=ft.Column(
+                        [ft.Checkbox(label=genero["name"], value=False, 
+                                   on_change=lambda e, g=genero: self.toggle_genero(g, e.control.value))
+                         for genero in self.tmdb_api.generos],
+                        scroll=ft.ScrollMode.AUTO,
+                        height=200
+                    ),
+                    padding=10
+                ),
+                ft.Divider(color=COLOR_NARANJA),
+                ft.Text("Año de estreno", color=COLOR_TEXTO, weight=ft.FontWeight.BOLD),
+                ft.Row([
+                    ft.TextField(
+                        label="Desde",
+                        width=100,
+                        bgcolor=COLOR_FONDO,
+                        border_color=COLOR_NARANJA,
+                        color=COLOR_TEXTO,
+                        on_change=lambda e: self.actualizar_filtro("año_desde", e.control.value)
+                    ),
+                    ft.TextField(
+                        label="Hasta",
+                        width=100,
+                        bgcolor=COLOR_FONDO,
+                        border_color=COLOR_NARANJA,
+                        color=COLOR_TEXTO,
+                        on_change=lambda e: self.actualizar_filtro("año_hasta", e.control.value)
+                    ),
+                ]),
+                ft.Divider(color=COLOR_NARANJA),
+                ft.Text("Duración (minutos)", color=COLOR_TEXTO, weight=ft.FontWeight.BOLD),
+                ft.Container(
+                    content=ft.Column([
+                        ft.RangeSlider(
+                            min=0,
+                            max=240,
+                            start_value=self.filtros_activos["duracion_desde"],
+                            end_value=self.filtros_activos["duracion_hasta"],
+                            divisions=12,  # Divisiones cada 20 minutos
+                            label="{value}",  # Cambiado labels por label
+                            active_color=COLOR_NARANJA,
+                            inactive_color=COLOR_FONDO,
+                            on_change=self.actualizar_rango_duracion
+                        ),
+                        self.texto_rango
+                    ]),
+                    padding=10
+                ),
+            ], spacing=20),
+            actions=[
+                ft.TextButton("Limpiar", on_click=self.limpiar_filtros),
+                ft.TextButton("Aplicar", on_click=self.aplicar_filtros),
+            ],
+            actions_alignment=ft.MainAxisAlignment.END,
+            bgcolor=COLOR_FONDO,
+        )
+
     def limpiar_filtros(self, e):
+        """Resetea todos los filtros a sus valores por defecto"""
         self.filtros_activos = {
             "generos": [],
+            "duracion_desde": 0,
+            "duracion_hasta": 240,
             "año_desde": None,
-            "año_hasta": None,
-            "duracion_desde": None,
-            "duracion_hasta": None
+            "año_hasta": None
         }
-        # Resetear checkboxes
-        for control in self.dialogo_filtros.content.controls[1].content.controls:
-            if isinstance(control, ft.Checkbox):
-                control.value = False
-        # Resetear campos de texto
+        
+        # Actualizar controles visuales
+        self.texto_rango.value = f"Duración: 0 - 240 minutos"
+        self.texto_rango.update()
+        
+        # Actualizar el slider
         for control in self.dialogo_filtros.content.controls:
-            if isinstance(control, ft.Row):
-                for text_field in control.controls:
-                    if isinstance(text_field, ft.TextField):
-                        text_field.value = ""
-        self.aplicar_filtros(e)
+            if isinstance(control, ft.Container) and isinstance(control.content, ft.Column):
+                for subcontrol in control.content.controls:
+                    if isinstance(subcontrol, ft.RangeSlider):
+                        subcontrol.start_value = 0
+                        subcontrol.end_value = 240
+                        subcontrol.update()
+        
+        self.aplicar_filtros(None)
 
     def aplicar_filtros(self, e):
+        """Aplica los filtros y cierra el diálogo"""
+        print("\n=== DEBUG: Aplicando filtros ===")
+        print(f"Filtros activos: {self.filtros_activos}")
+        
         self.dialogo_filtros.open = False
         self.filtrar_peliculas()
         self.page.update()
@@ -198,58 +228,66 @@ class CatalogoContent(ft.Column): # Cambiado a Content para evitar confusión co
         self.page.update()
 
     def filtrar_peliculas(self, query=""):
-        # Usar el query guardado si no se pasa uno directamente
-        current_query = query if query else getattr(self, 'query_busqueda', '')
-
+        print("\n=== DEBUG: Iniciando filtrado de películas ===")
+        
+        # Usar películas del catálogo como base
         peliculas_filtradas = self.peliculas_catalogo.copy()
-
-        # Filtrar por texto (título o sinopsis)
-        if current_query:
+        
+        # Filtrar por texto si existe
+        if query:
             peliculas_filtradas = [
                 p for p in peliculas_filtradas
-                if current_query.lower() in p.get("title", "").lower() or \
-                   current_query.lower() in p.get("overview", "").lower()
+                if query.lower() in p.get("title", "").lower() or 
+                   query.lower() in p.get("overview", "").lower()
             ]
+            print(f"Filtrado por texto: {len(peliculas_filtradas)} películas")
 
         # Filtrar por géneros
         if self.filtros_activos["generos"]:
+            print(f"Filtrando por géneros: {self.filtros_activos['generos']}")
             peliculas_filtradas = [
                 p for p in peliculas_filtradas
-                if any(genero_id in p.get("genre_ids", []) for genero_id in self.filtros_activos["generos"])
+                if any(genero_id in p.get("genre_ids", []) 
+                      for genero_id in self.filtros_activos["generos"])
             ]
+            print(f"Después de filtrar por géneros: {len(peliculas_filtradas)} películas")
 
         # Filtrar por año
-        if self.filtros_activos["año_desde"] or self.filtros_activos["año_hasta"]:
+        año_desde = self.filtros_activos["año_desde"]
+        año_hasta = self.filtros_activos["año_hasta"]
+        
+        if año_desde or año_hasta:
+            print(f"Filtrando por año: {año_desde} - {año_hasta}")
             peliculas_filtradas = [
                 p for p in peliculas_filtradas
-                if self.filtros_activos["año_desde"] is None or 
-                   int(p.get("release_date", "0")[:4]) >= self.filtros_activos["año_desde"]
+                if (not año_desde or int(p.get("release_date", "0")[:4]) >= año_desde) and
+                   (not año_hasta or int(p.get("release_date", "0")[:4]) <= año_hasta)
             ]
-            peliculas_filtradas = [
-                p for p in peliculas_filtradas
-                if self.filtros_activos["año_hasta"] is None or 
-                   int(p.get("release_date", "0")[:4]) <= self.filtros_activos["año_hasta"]
-            ]
+            print(f"Después de filtrar por año: {len(peliculas_filtradas)} películas")
 
-        # Filtrar por duración
-        if self.filtros_activos["duracion_desde"] or self.filtros_activos["duracion_hasta"]:
+        # Obtener duración de las películas filtradas
+        duracion_desde = self.filtros_activos["duracion_desde"]
+        duracion_hasta = self.filtros_activos["duracion_hasta"]
+        
+        if duracion_desde > 0 or duracion_hasta < 240:
+            print(f"Filtrando por duración: {duracion_desde} - {duracion_hasta}")
+            # Obtener detalles solo para las películas que ya pasaron los otros filtros
             for pelicula in peliculas_filtradas:
-                detalle = self.tmdb_api.obtener_detalle_pelicula(pelicula["id"])
-                if detalle:
-                    duracion = detalle.get("runtime", 0)
-                    pelicula["runtime"] = duracion
+                if "runtime" not in pelicula:
+                    detalle = self.tmdb_api.obtener_detalle_pelicula(pelicula["id"])
+                    if detalle:
+                        pelicula["runtime"] = detalle.get("runtime", 0)
+                    else:
+                        pelicula["runtime"] = 0
 
             peliculas_filtradas = [
                 p for p in peliculas_filtradas
-                if self.filtros_activos["duracion_desde"] is None or 
-                   p.get("runtime", 0) >= self.filtros_activos["duracion_desde"]
+                if duracion_desde <= p.get("runtime", 0) <= duracion_hasta
             ]
-            peliculas_filtradas = [
-                p for p in peliculas_filtradas
-                if self.filtros_activos["duracion_hasta"] is None or 
-                   p.get("runtime", 0) <= self.filtros_activos["duracion_hasta"]
-            ]
+            print(f"Después de filtrar por duración: {len(peliculas_filtradas)} películas")
 
+        # Mostrar resultados
+        print(f"Total de películas filtradas: {len(peliculas_filtradas)}")
         self.mostrar_peliculas(peliculas_filtradas)
         self.actualizar_visibilidad()
 
