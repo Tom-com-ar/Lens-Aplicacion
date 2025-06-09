@@ -224,7 +224,7 @@ class CatalogoContent(ft.Column):
     def filtrar_por_texto(self, query):
         # Guarda el query para que el filtro combinado lo use
         self.query_busqueda = query
-        self.filtrar_peliculas() # Llama al método de filtrado general
+        self.filtrar_peliculas(query) # Pasar el query al método de filtrado
         self.page.update()
 
     def filtrar_peliculas(self, query=""):

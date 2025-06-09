@@ -4,12 +4,15 @@ from ui.catalogo import CatalogoContent
 from ui.detalle_pelicula import DetallePeliculaContent 
 from ui.comentarios import ComentariosUI
 from ui.compra_entradas import CompraEntradasUI
+from ui.auth import AuthContent
+from ui.perfil_usuario import PerfilUsuarioContent
 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#000000"
 COLOR_TEXTO = "#FFFFFF"
 COLOR_ICONOS = "#000000"
 COLOR_SOMBRA = "#00000022"
+COLOR_ERROR = "#FF0000"
 
 def main(page: ft.Page):
     page.title = "Catálogo de Películas"
@@ -17,8 +20,67 @@ def main(page: ft.Page):
     page.window_maximized = True 
     page.bgcolor = COLOR_FONDO 
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER 
+    
+    # Inicializar el SnackBar de la página
+    page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor=COLOR_NARANJA)
 
     tmdb_api = TMDBApi()
+
+    # Variable para almacenar el ID del usuario logueado
+    logged_in_user_id = None
+
+    def on_login_success(user_id):
+        nonlocal logged_in_user_id
+        logged_in_user_id = user_id
+        print(f"Usuario {logged_in_user_id} ha iniciado sesión con éxito.")
+        mostrar_catalogo() # Navegar al catálogo principal
+
+    # Crear la instancia de la pantalla de autenticación
+    auth_content = AuthContent(page, on_login_success)
+
+    # Función para manejar el cierre de sesión
+    def logout():
+        nonlocal logged_in_user_id
+        logged_in_user_id = None
+        page.snack_bar.content = ft.Text("Sesión cerrada correctamente.")
+        page.snack_bar.bgcolor = COLOR_NARANJA
+        page.snack_bar.open = True
+        main_content_area.controls.clear()
+        main_content_area.controls.append(auth_content)
+        page.update()
+
+    # Función para mostrar la pantalla de perfil
+    def mostrar_perfil():
+        nonlocal logged_in_user_id
+        if logged_in_user_id is None:
+            page.snack_bar.content = ft.Text("Debes iniciar sesión para ver tu perfil.")
+            page.snack_bar.bgcolor = COLOR_NARANJA
+            page.snack_bar.open = True
+            page.update()
+            return
+        
+        # Aquí necesitamos obtener los datos del usuario (nombre, email) de la base de datos
+        # antes de pasarla a la pantalla de perfil.
+        # Por ahora, pasaremos un placeholder o obtendremos el usuario completo de la DB
+        # al inicio de sesión y lo almacenaremos.
+        print(f"DEBUG: Mostrando perfil para usuario ID: {logged_in_user_id}")
+        main_content_area.controls.clear()
+        # Temporalmente, vamos a asumir que podemos obtener el usuario completo de la DB
+        from services.db import db # Importar aquí para evitar dependencia circular si db importa main
+        user_data = db.get_user_by_id(logged_in_user_id) # Necesitamos una función get_user_by_id en db.py
+        
+        # Si no se encuentra el usuario (ej. DB no sincronizada o usuario eliminado)
+        if not user_data:
+            page.snack_bar.content = ft.Text("No se pudo cargar la información del perfil.")
+            page.snack_bar.bgcolor = COLOR_ERROR
+            page.snack_bar.open = True
+            page.update()
+            logout() # Forzar logout si los datos del usuario no están disponibles
+            return
+
+        perfil_content = PerfilUsuarioContent(page, user_data, logout)
+        main_content_area.controls.append(perfil_content)
+        page.update()
 
     logo = ft.Container(
         content=ft.Image(src="assets/logo.png", width=120, height=50),
@@ -37,7 +99,9 @@ def main(page: ft.Page):
         width=260,
         content_padding=ft.padding.only(left=15),
         border_color=COLOR_NARANJA,
-        on_change=lambda e: buscar_peliculas(e.control.value)
+        on_change=lambda e: buscar_peliculas(e.control.value),
+        text_style=ft.TextStyle(color=COLOR_TEXTO),
+        cursor_color=COLOR_TEXTO
     )
     
     boton_buscar = ft.IconButton(
@@ -51,12 +115,22 @@ def main(page: ft.Page):
         on_click=lambda e: buscar_peliculas(campo_busqueda.value)
     )
 
+    # Nuevo: Botón de perfil
+    boton_perfil = ft.IconButton(
+        content=ft.Image(src="assets/User.png", width=44, height=44), # Usar la imagen directamente
+        tooltip="Perfil de Usuario", 
+        width=44, 
+        height=44, 
+        on_click=lambda e: mostrar_perfil() # Llamar a la función para mostrar el perfil
+    )
+
     barra_superior = ft.Container(
         content=ft.Row([
             logo,
             ft.Container(expand=1),
             campo_busqueda,
             boton_buscar,
+            boton_perfil, # Añadir el botón de perfil aquí
             ft.Container(width=30),
         ], alignment=ft.MainAxisAlignment.CENTER, vertical_alignment=ft.CrossAxisAlignment.CENTER),
     )
@@ -68,6 +142,14 @@ def main(page: ft.Page):
     catalogo_content = CatalogoContent(page, tmdb_api, lambda p: mostrar_detalle(p))
 
     def mostrar_comentarios(pelicula):
+        nonlocal logged_in_user_id
+        if logged_in_user_id is None:
+            page.snack_bar.content = ft.Text("Debes iniciar sesión para dejar un comentario.")
+            page.snack_bar.bgcolor = COLOR_NARANJA # O un color de advertencia
+            page.snack_bar.open = True
+            page.update()
+            return
+
         # Ocultar la barra de búsqueda
         campo_busqueda.visible = False
         boton_buscar.visible = False
@@ -76,11 +158,20 @@ def main(page: ft.Page):
         # Limpiar el área de contenido principal y agregar la vista de comentarios
         main_content_area.controls.clear()
         # Pasar la función mostrar_detalle como callback para el botón de volver
-        comentarios_content = ComentariosUI(page, pelicula, mostrar_detalle)
+        # Pasar el ID del usuario logueado
+        comentarios_content = ComentariosUI(page, pelicula, mostrar_detalle, logged_in_user_id) 
         main_content_area.controls.append(comentarios_content)
         page.update()
 
     def mostrar_compra_entradas(pelicula):
+        nonlocal logged_in_user_id
+        if logged_in_user_id is None:
+            page.snack_bar.content = ft.Text("Debes iniciar sesión para comprar entradas.")
+            page.snack_bar.bgcolor = COLOR_NARANJA # O un color de advertencia
+            page.snack_bar.open = True
+            page.update()
+            return
+
         # Ocultar la barra de búsqueda
         campo_busqueda.visible = False
         boton_buscar.visible = False
@@ -89,7 +180,8 @@ def main(page: ft.Page):
         # Limpiar el área de contenido principal y agregar la vista de compra de entradas
         main_content_area.controls.clear()
         # Pasar la función mostrar_detalle como callback para el botón de volver en compra de entradas
-        compra_entradas_content = CompraEntradasUI(page, pelicula, mostrar_detalle)
+        # Pasar el ID del usuario logueado
+        compra_entradas_content = CompraEntradasUI(page, pelicula, mostrar_detalle, logged_in_user_id)
         main_content_area.controls.append(compra_entradas_content)
         page.update()
 
@@ -108,13 +200,14 @@ def main(page: ft.Page):
 
     def buscar_peliculas(query):
         if not query:
-            # Si el query está vacío, mostrar el catálogo completo (o según filtros aplicados)
-            # Limpiar el query de búsqueda en el catálogo y aplicar filtros
-            catalogo_content.filtrar_por_texto("") # Pasar string vacío para limpiar búsqueda
+            # Si el query está vacío, mostrar el catálogo completo
+            catalogo_content.filtrar_por_texto("")
+            page.update()
             return
 
         # Usar el método de filtrado por texto del catálogo existente
         catalogo_content.filtrar_por_texto(query)
+        page.update()
 
     def mostrar_catalogo():
         # Mostrar la barra de búsqueda
@@ -132,10 +225,11 @@ def main(page: ft.Page):
         main_content_area 
     )
 
-    # Añadir el catálogo al área de contenido principal al inicio
-    main_content_area.controls.append(catalogo_content)
+    # Al inicio, mostrar la pantalla de autenticación
+    main_content_area.controls.append(auth_content)
+    page.update() # Asegurar que la pantalla de autenticación se muestre inmediatamente
 
-    mostrar_catalogo()
+    # mostrar_catalogo() # Comentar o eliminar esta línea, el catálogo se mostrará después del login
 
 
 ft.app(target=main)

@@ -1,16 +1,19 @@
 import flet as ft
+from services.db import db # Importar la instancia de la base de datos
 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#000000"
 COLOR_TEXTO = "#FFFFFF"
 COLOR_GRIS_CLARO = "#D9D9D9"
+COLOR_ERROR = "#FF0000"
 
 class ComentariosUI(ft.Column):
-    def __init__(self, page: ft.Page, pelicula=None, volver_callback=None):
+    def __init__(self, page: ft.Page, pelicula=None, volver_callback=None, user_id=None):
         super().__init__(expand=True, scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         self.page = page
         self.pelicula = pelicula
         self.volver_callback = volver_callback
+        self.user_id = user_id # Almacenar el ID del usuario
         self.spacing = 20
 
         # Referencia solo para el campo de reseña
@@ -110,26 +113,45 @@ class ComentariosUI(ft.Column):
         valoracion = int(self.valoracion_slider.value)
 
         if not resena:
-            self.page.show_snack_bar(
-                ft.SnackBar(
-                    content=ft.Text("Por favor, escribe una reseña"),
-                    bgcolor=COLOR_NARANJA
-                )
-            )
+            self.page.snack_bar.content = ft.Text("Por favor, escribe una reseña")
+            self.page.snack_bar.bgcolor = COLOR_NARANJA
+            self.page.snack_bar.open = True
             return
 
-        # Aquí iría la lógica para guardar la reseña con la valoración
-        self.page.show_snack_bar(
-            ft.SnackBar(
-                content=ft.Text("¡Reseña enviada con éxito!"),
-                bgcolor=COLOR_NARANJA
-            )
-        )
+        # Obtener el TMDB ID de la película
+        tmdb_id = self.pelicula.get("id")
+        
+        # --- Lógica para guardar la reseña en la base de datos ---
+        # Usar el id_usuario real recibido
+        if self.user_id is None:
+            self.page.snack_bar.content = ft.Text("Error: No hay usuario autenticado para enviar la reseña.")
+            self.page.snack_bar.bgcolor = COLOR_ERROR
+            self.page.snack_bar.open = True
+            self.page.update()
+            return
 
-        # Limpiar campos y resetear valoración
-        if self.campo_resena_ref.current:
-            self.campo_resena_ref.current.value = ""
-        self.valoracion_slider.value = 5
+        if tmdb_id:
+            rows_affected = db.add_comentario(self.user_id, tmdb_id, resena, valoracion)
+            if rows_affected:
+                self.page.snack_bar.content = ft.Text("¡Reseña enviada con éxito!")
+                self.page.snack_bar.bgcolor = COLOR_NARANJA
+                self.page.snack_bar.open = True
+                # Limpiar campos y resetear valoración
+                if self.campo_resena_ref.current:
+                    self.campo_resena_ref.current.value = ""
+                self.valoracion_slider.value = 5
 
-        # Actualizar la página
+                # Actualizar la página (opcional, si hay una lista de comentarios visible)
+                # self.page.update()
+                
+            else:
+                self.page.snack_bar.content = ft.Text("Error al enviar la reseña. Inténtalo de nuevo.")
+                self.page.snack_bar.bgcolor = COLOR_NARANJA
+                self.page.snack_bar.open = True
+        else:
+            self.page.snack_bar.content = ft.Text("No se pudo obtener el ID de la película.")
+            self.page.snack_bar.bgcolor = COLOR_NARANJA
+            self.page.snack_bar.open = True
+
+        # Actualizar la página (si no se actualizó antes por éxito o error)
         self.page.update()

@@ -2,41 +2,13 @@ import flet as ft
 from services.tmdb_api import TMDBApi
 from ui.comentarios import ComentariosUI
 import webbrowser
+from services.db import db # Importar la instancia de la base de datos
 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#000000"
 COLOR_TEXTO = "#FFFFFF"
 COLOR_ICONOS = "#000000"
 COLOR_SOMBRA = "#00000022"
-
-# Reseñas de ejemplo (pueden ir en un archivo de datos o base de datos real después)
-RESEÑAS_EJEMPLO = [
-    {"usuario": "Juan Pérez", "texto": "¡Excelente película! Me encantó la historia y los personajes."},
-    {"usuario": "Ana López", "texto": "Muy buena, la recomiendo para ver en familia."},
-    {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
-    {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
-    {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
-    {"usuario": "Juan Pérez", "texto": "¡Excelente película! Me encantó la historia y los personajes."},
-    {"usuario": "Ana López", "texto": "Muy buena, la recomiendo para ver en familia."},
-    {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
-    {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
-    {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
-    {"usuario": "Juan Pérez", "texto": "¡Excelente película! Me encantó la historia y los personajes."},
-    {"usuario": "Ana López", "texto": "Muy buena, la recomiendo para ver en familia."},
-    {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
-    {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
-    {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
-    {"usuario": "Juan Pérez", "texto": "¡Excelente película! Me encantó la historia y los personajes."},
-    {"usuario": "Ana López", "texto": "Muy buena, la recomiendo para ver en familia."},
-    {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
-    {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
-    {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
-    {"usuario": "Juan Pérez", "texto": "¡Excelente película! Me encantó la historia y los personajes."},
-    {"usuario": "Ana López", "texto": "Muy buena, la recomiendo para ver en familia."},
-    {"usuario": "Carlos Ruiz", "texto": "La fotografía y la música son increíbles."},
-    {"usuario": "Laura Giménez", "texto": "Me mantuvo al borde del asiento. ¡Muy recomendada!"},
-    {"usuario": "Pedro Sánchez", "texto": "El guion es un poco flojo, pero visualmente es impresionante."},
-]
 
 
 class DetallePeliculaContent(ft.Column): # Cambiado a Content
@@ -162,6 +134,12 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
         )
 
         # --- Contenedor de reseñas con scroll individual ---
+        # Obtener comentarios de la base de datos
+        comentarios_db = db.get_comentarios_by_tmdb_id(self.pelicula["id"])
+        
+        # Usar los comentarios de la DB si existen, si no, usar una lista vacía
+        reseñas_a_mostrar = comentarios_db if comentarios_db else []
+
         reseñas_container = ft.Container(
             content=ft.Column(
                 [
@@ -171,11 +149,11 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
                     ),
                     *[ft.Container(
                         content=ft.Row([
-                            ft.CircleAvatar(content=ft.Text(r["usuario"][0], size=18), color=COLOR_TEXTO, bgcolor=COLOR_NARANJA, radius=25),
+                            ft.CircleAvatar(content=ft.Text(r["nombre_usuario"][0].upper() if r.get("nombre_usuario") else "U", size=18), color=COLOR_TEXTO, bgcolor=COLOR_NARANJA, radius=25), # Mostrar primera letra del usuario
                             ft.Container(
                                 content=ft.Column([
-                                    ft.Text(r["usuario"], color=COLOR_TEXTO, weight=ft.FontWeight.BOLD, size=15),
-                                    ft.Text(r["texto"], color=COLOR_TEXTO, size=13, expand=True),
+                                    ft.Text(r["nombre_usuario"], color=COLOR_TEXTO, weight=ft.FontWeight.BOLD, size=15),
+                                    ft.Text(r["comentario"], color=COLOR_TEXTO, size=13, expand=True),
                                 ], alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.START, expand=True),
                                 margin=ft.margin.only(left=15),
                                 expand=True
@@ -187,7 +165,7 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
                         shadow=ft.BoxShadow(blur_radius=10, color=COLOR_SOMBRA, offset=ft.Offset(2, 4)),
                         margin=ft.margin.only(top=15, bottom=0),
                         width=850,
-                    ) for r in RESEÑAS_EJEMPLO]
+                    ) for r in reseñas_a_mostrar]
                 ],
                 scroll=ft.ScrollMode.AUTO,
                 spacing=0,

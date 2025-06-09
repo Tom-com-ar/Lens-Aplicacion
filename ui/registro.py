@@ -1,5 +1,5 @@
 import flet as ft
-from services.database import Database
+from services.db import Database
 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#1e1e1e"
@@ -16,7 +16,7 @@ class RegistroUI(ft.Column):
         self.usuario_field = ft.TextField(
             label="Nombre de Usuario",
             border_radius=10,
-            bgcolor="#D9D9D9",
+            bgcolor=COLOR_NARANJA,
             color="black",
             width=300
         )
@@ -24,7 +24,7 @@ class RegistroUI(ft.Column):
         self.email_field = ft.TextField(
             label="Email",
             border_radius=10,
-            bgcolor="#D9D9D9",
+            bgcolor=COLOR_NARANJA,
             color="black",
             width=300
         )
@@ -34,7 +34,7 @@ class RegistroUI(ft.Column):
             password=True,
             can_reveal_password=True,
             border_radius=10,
-            bgcolor="#D9D9D9",
+            bgcolor=COLOR_NARANJA,
             color="black",
             width=300
         )

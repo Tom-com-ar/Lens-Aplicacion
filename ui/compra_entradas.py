@@ -1,5 +1,6 @@
 import flet as ft
 from services.tmdb_api import TMDBApi
+from services.db import db # Importar la instancia de la base de datos
 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#000000"
@@ -9,13 +10,15 @@ COLOR_GRIS_CLARO = "#D9D9D9"
 COLOR_SELECCIONANDO = "#FF9D00" 
 COLOR_OCUPADO = "#555555" 
 COLOR_DISPONIBLE = "#D9D9D9"
+COLOR_ERROR = "#FF0000"
 
 class CompraEntradasUI(ft.Column):
-    def __init__(self, page: ft.Page, pelicula=None, volver_detalle_callback=None):
+    def __init__(self, page: ft.Page, pelicula=None, volver_detalle_callback=None, user_id=None):
         super().__init__(expand=True, scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         self.page = page
         self.pelicula = pelicula
         self.volver_detalle_callback = volver_detalle_callback
+        self.user_id = user_id # Almacenar el ID del usuario
         self.spacing = 40 # Espaciado general
         self.tmdb_api = TMDBApi()
 
@@ -31,6 +34,12 @@ class CompraEntradasUI(ft.Column):
             detalle = self.pelicula
 
         poster_url = f"https://image.tmdb.org/t/p/w500{detalle['poster_path']}" if detalle.get("poster_path") else "https://via.placeholder.com/240x380?text=Sin+Imagen"
+
+        # --- Obtener asientos ocupados de la base de datos ---
+        tmdb_id = self.pelicula["id"]
+        asientos_ocupados_db = db.get_entradas_ocupadas_by_tmdb_id(tmdb_id)
+        # Convertir la lista de diccionarios a un set de strings para fácil búsqueda
+        self.asientos_ocupados_set = {f"{a['fila']}{a['numero_asiento']}" for a in asientos_ocupados_db} if asientos_ocupados_db else set()
 
         # --- Información de la película (izquierda) ---
         info_pelicula_col = ft.Container(
@@ -71,23 +80,31 @@ class CompraEntradasUI(ft.Column):
         pantalla = ft.Container(width=400, height=10, bgcolor=COLOR_GRIS_CLARO, border_radius=5, margin=ft.margin.only(bottom=20))
 
         # Cuadrícula de asientos
-        asientos_grid = ft.Column(spacing=5)
+        asientos_grid_controls = []
         filas = "ABCDEFGHIJ"
         for i, fila_letra in enumerate(filas):
             fila_asientos = ft.Row(alignment=ft.MainAxisAlignment.CENTER, spacing=5)
             fila_asientos.controls.append(ft.Text(fila_letra, color=COLOR_TEXTO, size=12, weight=ft.FontWeight.BOLD))
-            for j in range(1, 11): # 10 asientos por fila
+            for j in range(1, 13): # 10 asientos por fila
                 asiento_id = f"{fila_letra}{j}"
+                
+                # Determinar el color inicial del asiento
+                initial_bgcolor = COLOR_OCUPADO if asiento_id in self.asientos_ocupados_set else COLOR_DISPONIBLE
+                
                 asiento_container = ft.Container(
                     width=30, height=30,
-                    bgcolor=COLOR_DISPONIBLE, 
+                    bgcolor=initial_bgcolor, 
                     border_radius=5,
                     alignment=ft.alignment.center,
                     data=asiento_id,
                     on_click=self.asiento_click,
+                    # Deshabilitar click si el asiento está ocupado
+                    disabled=asiento_id in self.asientos_ocupados_set
                 )
                 fila_asientos.controls.append(asiento_container)
-            asientos_grid.controls.append(fila_asientos)
+            asientos_grid_controls.append(fila_asientos)
+        
+        asientos_grid = ft.Column(spacing=5, controls=asientos_grid_controls)
 
         area_asientos_col = ft.Container(
             content=ft.Column([
@@ -149,6 +166,10 @@ class CompraEntradasUI(ft.Column):
         asiento_container = e.control
         asiento_id = asiento_container.data
 
+        # Evitar seleccionar asientos ya ocupados
+        if asiento_id in self.asientos_ocupados_set:
+            return
+
         if asiento_container.bgcolor == COLOR_DISPONIBLE:
             asiento_container.bgcolor = COLOR_SELECCIONANDO
             self.asientos_seleccionados.append(asiento_id)
@@ -164,7 +185,46 @@ class CompraEntradasUI(ft.Column):
         self.page.update()
 
     def comprar_entradas_click(self, e):
-        print("Botón Comprar Entradas clicado.")
-        print("Asientos seleccionados:", self.asientos_seleccionados)
-        self.page.go("/")
+        if not self.asientos_seleccionados:
+            self.page.snack_bar.content = ft.Text("Por favor, selecciona al menos un asiento.")
+            self.page.snack_bar.bgcolor = COLOR_NARANJA
+            self.page.snack_bar.open = True
+            self.page.update()
+            return
+
+        tmdb_id = self.pelicula["id"]
+        # Usar el id_usuario real recibido
+        if self.user_id is None:
+            self.page.snack_bar.content = ft.Text("Error: No hay usuario autenticado para comprar entradas.")
+            self.page.snack_bar.bgcolor = COLOR_ERROR # Define COLOR_ERROR si no existe
+            self.page.snack_bar.open = True
+            self.page.update()
+            return
+
+        compra_exitosa = True
+
+        for asiento_id in self.asientos_seleccionados:
+            fila = asiento_id[0] # Primera letra es la fila
+            numero_asiento = int(asiento_id[1:]) # Resto es el número de asiento
+            
+            rows_affected = db.add_entrada(self.user_id, tmdb_id, fila, numero_asiento)
+            if not rows_affected:
+                compra_exitosa = False
+                break
+
+        if compra_exitosa:
+            self.page.snack_bar.content = ft.Text("¡Entradas compradas con éxito!")
+            self.page.snack_bar.bgcolor = COLOR_NARANJA
+            self.page.snack_bar.open = True
+            # Limpiar selección y recargar asientos para mostrar los ocupados
+            self.asientos_seleccionados.clear()
+            self.asientos_seleccionados_text.value = "Asientos seleccionados: Ninguno"
+            self.create_layout() # Volver a crear el layout para actualizar asientos ocupados
+        else:
+            self.page.snack_bar.content = ft.Text("Error al procesar la compra. Inténtalo de nuevo.")
+            self.page.snack_bar.bgcolor = COLOR_NARANJA
+            self.page.snack_bar.open = True
+        self.page.update()
+
+        # self.page.go("/") # Quitar esto, la navegación se manejará después de la compra
 
