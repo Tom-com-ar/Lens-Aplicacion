@@ -1,18 +1,17 @@
 import flet as ft
-from services.db import db # Importar la instancia de la base de datos
-
+from services.db import db 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#000000"
 COLOR_TEXTO = "#FFFFFF"
 COLOR_GRIS_CLARO = "#848484"
-COLOR_EXITO = "#4CAF50" # Verde para éxito
-COLOR_ERROR = "#F44336"  # Rojo para error
+COLOR_EXITO = "#4CAF50" 
+COLOR_ERROR = "#F44336"  
 
 class AuthContent(ft.Column):
     def __init__(self, page: ft.Page, on_login_success):
         super().__init__(expand=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         self.page = page
-        self.on_login_success = on_login_success # Callback al iniciar sesión con éxito
+        self.on_login_success = on_login_success 
 
         self.is_register_mode = ft.Ref[ft.Column]()
         
@@ -25,8 +24,8 @@ class AuthContent(ft.Column):
             width=300,
             text_align=ft.TextAlign.CENTER,
             capitalization=ft.TextCapitalization.WORDS,
-            autocorrect=False, # Deshabilitar autocorrección
-            enable_suggestions=False # Deshabilitar sugerencias
+            autocorrect=False, 
+            enable_suggestions=False 
         )
         self.campo_email = ft.TextField(
             label="Email",
@@ -37,8 +36,8 @@ class AuthContent(ft.Column):
             width=300,
             text_align=ft.TextAlign.CENTER,
             keyboard_type=ft.KeyboardType.EMAIL,
-            autocorrect=False, # Deshabilitar autocorrección
-            enable_suggestions=False # Deshabilitar sugerencias
+            autocorrect=False, 
+            enable_suggestions=False 
         )
         self.campo_password = ft.TextField(
             label="Contraseña",
@@ -47,11 +46,11 @@ class AuthContent(ft.Column):
             color=COLOR_FONDO,
             border_radius=10,
             width=300,
-            password=True, # Para ocultar la contraseña
+            password=True, 
             can_reveal_password=True,
             text_align=ft.TextAlign.CENTER,
-            autocorrect=False, # Deshabilitar autocorrección
-            enable_suggestions=False # Deshabilitar sugerencias
+            autocorrect=False, 
+            enable_suggestions=False 
         )
 
         self.toggle_button = ft.TextButton(
@@ -95,7 +94,6 @@ class AuthContent(ft.Column):
         ]
 
     def toggle_mode(self, e):
-        # Limpiar los campos al cambiar de modo
         if self.campo_nombre_usuario:
             self.campo_nombre_usuario.value = ""
         self.campo_email.value = ""
@@ -105,13 +103,13 @@ class AuthContent(ft.Column):
         if self.auth_button.text == "Registrarse":
             self.auth_button.text = "Iniciar Sesión"
             self.toggle_button.text = "¿No tienes cuenta? Regístrate"
-            self.is_register_mode.current.controls.remove(self.campo_nombre_usuario) # Quitar campo de nombre
-            self.is_register_mode.current.controls[0].value = "Iniciar Sesión" # Cambiar título
+            self.is_register_mode.current.controls.remove(self.campo_nombre_usuario)
+            self.is_register_mode.current.controls[0].value = "Iniciar Sesión" 
         else:
             self.auth_button.text = "Registrarse"
             self.toggle_button.text = "¿Ya tienes cuenta? Inicia Sesión"
-            self.is_register_mode.current.controls.insert(1, self.campo_nombre_usuario) # Reinsertar campo de nombre
-            self.is_register_mode.current.controls[0].value = "Registrarse" # Cambiar título
+            self.is_register_mode.current.controls.insert(1, self.campo_nombre_usuario) 
+            self.is_register_mode.current.controls[0].value = "Registrarse"
         self.page.update()
 
     def handle_auth(self, e):
@@ -150,7 +148,7 @@ class AuthContent(ft.Column):
                     self.page.snack_bar.bgcolor = COLOR_EXITO
                     self.page.snack_bar.open = True
                     print(f"DEBUG: Usuario registrado: {nombre_usuario}, {email}")
-                    self.toggle_mode(None) # toggle_mode ya llama a page.update()
+                    self.toggle_mode(None)
                 else:
                     self.page.snack_bar.content = ft.Text("Error en el registro. Inténtalo de nuevo.")
                     self.page.snack_bar.bgcolor = COLOR_ERROR
@@ -166,10 +164,9 @@ class AuthContent(ft.Column):
                 self.page.snack_bar.bgcolor = COLOR_EXITO
                 self.page.snack_bar.open = True
                 print(f"DEBUG: Inicio de sesión exitoso para usuario ID: {user['id_usuario']}")
-                self.on_login_success(user["id_usuario"]) # Esto cambia la pantalla y ya hace page.update()
+                self.on_login_success(user["id_usuario"])
             else:
                 self.page.snack_bar.content = ft.Text("Email o contraseña incorrectos.")
                 self.page.snack_bar.bgcolor = COLOR_ERROR
                 self.page.snack_bar.open = True
                 print("DEBUG: Email o contraseña incorrectos.")
-                # self.page.update() # Eliminado: Esta línea es la que causa el error 

@@ -2,7 +2,7 @@ import flet as ft
 from services.tmdb_api import TMDBApi
 from ui.comentarios import ComentariosUI
 import webbrowser
-from services.db import db # Importar la instancia de la base de datos
+from services.db import db 
 
 COLOR_NARANJA = "#FF9D00"
 COLOR_FONDO = "#000000"
@@ -72,7 +72,7 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
             ft.Text(detalle.get("overview", "Sin sinopsis disponible."), color=COLOR_TEXTO, size=14), # Sin expand aquí
         ]
 
-        # Botones (Enviar Reseña, Comprar Entrada, y ahora Trailer)
+        # Botones (Enviar Reseña, Comprar Entrada, y Trailer)
         botones_row_controls = [
              ft.ElevatedButton(
                  "Enviar Reseña",
@@ -86,7 +86,7 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
         ]
 
         if trailer_url:
-            # Agregar botón de trailer si se encontró uno
+            # Agregar botón de trailer
             botones_row_controls.append(
                  ft.ElevatedButton(
                      "Ver Trailer",
@@ -115,7 +115,7 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
             width=600, # Ajusta si es necesario
         )
 
-        # --- Sección principal (imagen + info) ---
+        # --- Sección principal ---
         seccion_principal = ft.Container(
             content=ft.Row([
                 ft.Image(src=poster_url, width=240, height=380, border_radius=25, fit=ft.ImageFit.COVER),
@@ -134,10 +134,8 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
         )
 
         # --- Contenedor de reseñas con scroll individual ---
-        # Obtener comentarios de la base de datos
         comentarios_db = db.get_comentarios_by_tmdb_id(self.pelicula["id"])
         
-        # Usar los comentarios de la DB si existen, si no, usar una lista vacía
         reseñas_a_mostrar = comentarios_db if comentarios_db else []
 
         reseñas_container = ft.Container(
@@ -170,7 +168,7 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
                 scroll=ft.ScrollMode.AUTO,
                 spacing=0,
             ),
-            height=400,  # Altura fija para el contenedor de reseñas
+            height=400, 
             width=900,
             border_radius=20,
             bgcolor="#1A1A1A",
@@ -184,5 +182,4 @@ class DetallePeliculaContent(ft.Column): # Cambiado a Content
             reseñas_container,
         ]
 
-        # Ajustar alineación de los controles en la columna
         self.horizontal_alignment = ft.CrossAxisAlignment.CENTER

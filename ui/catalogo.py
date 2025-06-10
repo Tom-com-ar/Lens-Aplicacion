@@ -12,8 +12,10 @@ class CatalogoContent(ft.Column):
         self.page = page
         self.tmdb_api = tmdb_api
         self.mostrar_detalle_callback = mostrar_detalle_callback
-        
-        # Inicializar filtros_activos
+
+        self.detalle_cache = {}  # <-- Agrega esto
+
+        # filtros_activos
         self.filtros_activos = {
             "generos": [],
             "duracion_desde": 0,
@@ -60,20 +62,20 @@ class CatalogoContent(ft.Column):
             "No se encontraron películas con los filtros aplicados.",
             color=COLOR_TEXTO,
             size=18,
-            visible=False # Inicialmente oculto
+            visible=False 
         )
 
         # --- Grilla de tarjetas con 6 columnas fijas ---
         self.grilla = ft.GridView(
             expand=True,
-            runs_count=10,  # SIEMPRE 6 COLUMNAS
-            max_extent=180,  # Ancho máximo de cada tarjeta
-            child_aspect_ratio=0.6,  # Relación ancho/alto
+            runs_count=10,  
+            max_extent=180,  
+            child_aspect_ratio=0.6,  
             spacing=10,
             run_spacing=10,
         )
 
-        # Contenedor principal de este contenido (para centrar la grilla y título/filtros)
+        # Contenedor principal de este contenido
         self.controls = [
             ft.Container(
                 content=ft.Column([
@@ -83,7 +85,7 @@ class CatalogoContent(ft.Column):
                 ], alignment=ft.MainAxisAlignment.START, horizontal_alignment=ft.CrossAxisAlignment.CENTER, expand=True),
                 alignment=ft.alignment.center,
                 padding=ft.padding.all(20),
-                bgcolor=COLOR_FONDO, # El fondo del contenido
+                bgcolor=COLOR_FONDO,
                 border_radius=0,
                 margin=ft.margin.all(0),
                 expand=True,
@@ -120,20 +122,50 @@ class CatalogoContent(ft.Column):
         """Actualiza los filtros con el nuevo rango de duración"""
         self.filtros_activos["duracion_desde"] = int(e.control.start_value)
         self.filtros_activos["duracion_hasta"] = int(e.control.end_value)
-        # Actualizar el texto que muestra el rango
         self.texto_rango.value = f"Duración: {int(e.control.start_value)} - {int(e.control.end_value)} minutos"
         self.texto_rango.update()
 
     def crear_dialogo_filtros(self):
+        self.checkboxes_generos = [
+            ft.Checkbox(label=genero["name"], value=False, 
+                on_change=lambda e, g=genero: self.toggle_genero(g, e.control.value))
+            for genero in self.tmdb_api.generos
+        ]
+        self.textfield_ano_desde = ft.TextField(
+            label="Desde",
+            width=100,
+            bgcolor=COLOR_FONDO,
+            border_color=COLOR_NARANJA,
+            color=COLOR_TEXTO,
+            on_change=lambda e: self.actualizar_filtro("año_desde", e.control.value)
+        )
+        self.textfield_ano_hasta = ft.TextField(
+            label="Hasta",
+            width=100,
+            bgcolor=COLOR_FONDO,
+            border_color=COLOR_NARANJA,
+            color=COLOR_TEXTO,
+            on_change=lambda e: self.actualizar_filtro("año_hasta", e.control.value)
+        )
+        self.slider_duracion = ft.RangeSlider(
+            min=0,
+            max=240,
+            start_value=0,
+            end_value=240,
+            divisions=12,
+            label="{value}",
+            active_color=COLOR_NARANJA,
+            inactive_color=COLOR_FONDO,
+            on_change=self.actualizar_rango_duracion
+        )
+
         self.dialogo_filtros = ft.AlertDialog(
             title=ft.Text("Filtros", color=COLOR_TEXTO),
             content=ft.Column([
                 ft.Text("Géneros", color=COLOR_TEXTO, weight=ft.FontWeight.BOLD),
                 ft.Container(
                     content=ft.Column(
-                        [ft.Checkbox(label=genero["name"], value=False, 
-                                   on_change=lambda e, g=genero: self.toggle_genero(g, e.control.value))
-                         for genero in self.tmdb_api.generos],
+                        self.checkboxes_generos,
                         scroll=ft.ScrollMode.AUTO,
                         height=200
                     ),
@@ -142,38 +174,14 @@ class CatalogoContent(ft.Column):
                 ft.Divider(color=COLOR_NARANJA),
                 ft.Text("Año de estreno", color=COLOR_TEXTO, weight=ft.FontWeight.BOLD),
                 ft.Row([
-                    ft.TextField(
-                        label="Desde",
-                        width=100,
-                        bgcolor=COLOR_FONDO,
-                        border_color=COLOR_NARANJA,
-                        color=COLOR_TEXTO,
-                        on_change=lambda e: self.actualizar_filtro("año_desde", e.control.value)
-                    ),
-                    ft.TextField(
-                        label="Hasta",
-                        width=100,
-                        bgcolor=COLOR_FONDO,
-                        border_color=COLOR_NARANJA,
-                        color=COLOR_TEXTO,
-                        on_change=lambda e: self.actualizar_filtro("año_hasta", e.control.value)
-                    ),
+                    self.textfield_ano_desde,
+                    self.textfield_ano_hasta,
                 ]),
                 ft.Divider(color=COLOR_NARANJA),
                 ft.Text("Duración (minutos)", color=COLOR_TEXTO, weight=ft.FontWeight.BOLD),
                 ft.Container(
                     content=ft.Column([
-                        ft.RangeSlider(
-                            min=0,
-                            max=240,
-                            start_value=self.filtros_activos["duracion_desde"],
-                            end_value=self.filtros_activos["duracion_hasta"],
-                            divisions=12,  # Divisiones cada 20 minutos
-                            label="{value}",  # Cambiado labels por label
-                            active_color=COLOR_NARANJA,
-                            inactive_color=COLOR_FONDO,
-                            on_change=self.actualizar_rango_duracion
-                        ),
+                        self.slider_duracion,
                         self.texto_rango
                     ]),
                     padding=10
@@ -187,30 +195,33 @@ class CatalogoContent(ft.Column):
             bgcolor=COLOR_FONDO,
         )
 
-    def limpiar_filtros(self, e):
-        """Resetea todos los filtros a sus valores por defecto"""
+    def limpiar_filtros(self, e=None):
         self.filtros_activos = {
             "generos": [],
-            "duracion_desde": 0,
-            "duracion_hasta": 240,
             "año_desde": None,
-            "año_hasta": None
+            "año_hasta": None,
+            "duracion_desde": 0,
+            "duracion_hasta": 240
         }
-        
-        # Actualizar controles visuales
-        self.texto_rango.value = f"Duración: 0 - 240 minutos"
+        # Limpiar checkboxes
+        for cb in self.checkboxes_generos:
+            cb.value = False
+            cb.update()
+        # Limpiar campos de año
+        self.textfield_ano_desde.value = ""
+        self.textfield_ano_desde.update()
+        self.textfield_ano_hasta.value = ""
+        self.textfield_ano_hasta.update()
+        # Limpiar slider de duración
+        self.slider_duracion.start_value = 0
+        self.slider_duracion.end_value = 240
+        self.slider_duracion.update()
+        # Limpiar texto de rango
+        self.texto_rango.value = "Duración: 0 - 240 minutos"
         self.texto_rango.update()
-        
-        # Actualizar el slider
-        for control in self.dialogo_filtros.content.controls:
-            if isinstance(control, ft.Container) and isinstance(control.content, ft.Column):
-                for subcontrol in control.content.controls:
-                    if isinstance(subcontrol, ft.RangeSlider):
-                        subcontrol.start_value = 0
-                        subcontrol.end_value = 240
-                        subcontrol.update()
-        
-        self.aplicar_filtros(None)
+        # Mostrar todas las películas
+        self.filtrar_por_texto("")
+        self.page.update()
 
     def aplicar_filtros(self, e):
         """Aplica los filtros y cierra el diálogo"""
@@ -222,25 +233,15 @@ class CatalogoContent(ft.Column):
         self.page.update()
 
     def filtrar_por_texto(self, query):
-        # Guarda el query para que el filtro combinado lo use
         self.query_busqueda = query
-        self.filtrar_peliculas(query) # Pasar el query al método de filtrado
+        self.filtrar_peliculas(query) 
         self.page.update()
 
     def filtrar_peliculas(self, query=""):
         print("\n=== DEBUG: Iniciando filtrado de películas ===")
         
-        # Usar películas del catálogo como base
         peliculas_filtradas = self.peliculas_catalogo.copy()
         
-        # Filtrar por texto si existe
-        if query:
-            peliculas_filtradas = [
-                p for p in peliculas_filtradas
-                if query.lower() in p.get("title", "").lower() or 
-                   query.lower() in p.get("overview", "").lower()
-            ]
-            print(f"Filtrado por texto: {len(peliculas_filtradas)} películas")
 
         # Filtrar por géneros
         if self.filtros_activos["generos"]:
@@ -271,14 +272,15 @@ class CatalogoContent(ft.Column):
         
         if duracion_desde > 0 or duracion_hasta < 240:
             print(f"Filtrando por duración: {duracion_desde} - {duracion_hasta}")
-            # Obtener detalles solo para las películas que ya pasaron los otros filtros
             for pelicula in peliculas_filtradas:
                 if "runtime" not in pelicula:
-                    detalle = self.tmdb_api.obtener_detalle_pelicula(pelicula["id"])
-                    if detalle:
-                        pelicula["runtime"] = detalle.get("runtime", 0)
+                    if pelicula["id"] in self.detalle_cache:
+                        pelicula["runtime"] = self.detalle_cache[pelicula["id"]]
                     else:
-                        pelicula["runtime"] = 0
+                        detalle = self.tmdb_api.obtener_detalle_pelicula(pelicula["id"])
+                        runtime = detalle.get("runtime", 0) if detalle else 0
+                        pelicula["runtime"] = runtime
+                        self.detalle_cache[pelicula["id"]] = runtime
 
             peliculas_filtradas = [
                 p for p in peliculas_filtradas
@@ -337,7 +339,6 @@ class CatalogoContent(ft.Column):
 
     def cargar_peliculas(self):
         self.peliculas_catalogo = self.tmdb_api.obtener_peliculas_populares()
-        self.peliculas_catalizadas = self.peliculas_catalogo.copy() # Lista para catalogo filtrado
+        self.peliculas_catalizadas = self.peliculas_catalogo.copy() 
         self.mostrar_peliculas(self.peliculas_catalogo)
-        # Inicializar query de búsqueda vacío
         self.query_busqueda = ""

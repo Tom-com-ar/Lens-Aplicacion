@@ -63,6 +63,7 @@ class RegistroUI(ft.Column):
                         ),
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
                     spacing=20,
                 ),
                 padding=40,

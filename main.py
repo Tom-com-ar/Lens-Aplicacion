@@ -21,7 +21,6 @@ def main(page: ft.Page):
     page.bgcolor = COLOR_FONDO 
     page.horizontal_alignment = ft.CrossAxisAlignment.CENTER 
     
-    # Inicializar el SnackBar de la página
     page.snack_bar = ft.SnackBar(content=ft.Text(""), bgcolor=COLOR_NARANJA)
 
     tmdb_api = TMDBApi()
@@ -59,26 +58,26 @@ def main(page: ft.Page):
             page.update()
             return
         
-        # Aquí necesitamos obtener los datos del usuario (nombre, email) de la base de datos
-        # antes de pasarla a la pantalla de perfil.
-        # Por ahora, pasaremos un placeholder o obtendremos el usuario completo de la DB
-        # al inicio de sesión y lo almacenaremos.
         print(f"DEBUG: Mostrando perfil para usuario ID: {logged_in_user_id}")
         main_content_area.controls.clear()
-        # Temporalmente, vamos a asumir que podemos obtener el usuario completo de la DB
-        from services.db import db # Importar aquí para evitar dependencia circular si db importa main
-        user_data = db.get_user_by_id(logged_in_user_id) # Necesitamos una función get_user_by_id en db.py
+        from services.db import db 
+        user_data = db.get_user_by_id(logged_in_user_id) 
         
-        # Si no se encuentra el usuario (ej. DB no sincronizada o usuario eliminado)
+        # Si no se encuentra el usuario
         if not user_data:
             page.snack_bar.content = ft.Text("No se pudo cargar la información del perfil.")
             page.snack_bar.bgcolor = COLOR_ERROR
             page.snack_bar.open = True
             page.update()
-            logout() # Forzar logout si los datos del usuario no están disponibles
+            logout()
             return
 
-        perfil_content = PerfilUsuarioContent(page, user_data, logout)
+        perfil_content = PerfilUsuarioContent(
+            page, 
+            user_data, 
+            logout, 
+            mostrar_catalogo  # <-- Pasa aquí la función para volver al inicio
+        )
         main_content_area.controls.append(perfil_content)
         page.update()
 
@@ -115,7 +114,7 @@ def main(page: ft.Page):
         on_click=lambda e: buscar_peliculas(campo_busqueda.value)
     )
 
-    # Nuevo: Botón de perfil
+    # Botón de perfil
     boton_perfil = ft.IconButton(
         content=ft.Image(src="assets/User.png", width=44, height=44), # Usar la imagen directamente
         tooltip="Perfil de Usuario", 
@@ -135,10 +134,8 @@ def main(page: ft.Page):
         ], alignment=ft.MainAxisAlignment.CENTER, vertical_alignment=ft.CrossAxisAlignment.CENTER),
     )
 
-    # Usamos un ft.Column que expande para ocupar el espacio restante
     main_content_area = ft.Column(expand=True, scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER)
 
-    # Crear la instancia del catálogo al inicio
     catalogo_content = CatalogoContent(page, tmdb_api, lambda p: mostrar_detalle(p))
 
     def mostrar_comentarios(pelicula):
@@ -153,12 +150,8 @@ def main(page: ft.Page):
         # Ocultar la barra de búsqueda
         campo_busqueda.visible = False
         boton_buscar.visible = False
-        # Implementar la lógica para mostrar la pantalla de comentarios
         print("Mostrar comentarios para:", pelicula["title"])
-        # Limpiar el área de contenido principal y agregar la vista de comentarios
         main_content_area.controls.clear()
-        # Pasar la función mostrar_detalle como callback para el botón de volver
-        # Pasar el ID del usuario logueado
         comentarios_content = ComentariosUI(page, pelicula, mostrar_detalle, logged_in_user_id) 
         main_content_area.controls.append(comentarios_content)
         page.update()
@@ -175,12 +168,8 @@ def main(page: ft.Page):
         # Ocultar la barra de búsqueda
         campo_busqueda.visible = False
         boton_buscar.visible = False
-        # Implementar la lógica para mostrar la pantalla de compra de entradas
         print("Mostrar compra de entradas para:", pelicula["title"])
-        # Limpiar el área de contenido principal y agregar la vista de compra de entradas
         main_content_area.controls.clear()
-        # Pasar la función mostrar_detalle como callback para el botón de volver en compra de entradas
-        # Pasar el ID del usuario logueado
         compra_entradas_content = CompraEntradasUI(page, pelicula, mostrar_detalle, logged_in_user_id)
         main_content_area.controls.append(compra_entradas_content)
         page.update()
@@ -189,9 +178,7 @@ def main(page: ft.Page):
         # Ocultar la barra de búsqueda
         campo_busqueda.visible = False
         boton_buscar.visible = False
-        # Limpiar el área de contenido principal y agregar la vista de detalle
         main_content_area.controls.clear()
-        # Pasar todos los callbacks necesarios a DetallePeliculaContent
         detalle_content = DetallePeliculaContent(
             page, tmdb_api, pelicula, mostrar_catalogo, mostrar_comentarios, mostrar_compra_entradas
         )
@@ -216,7 +203,6 @@ def main(page: ft.Page):
         # Limpiar el área de contenido principal y agregar la vista de catálogo
         main_content_area.controls.clear()
 
-        # Añadir la instancia existente del catálogo de nuevo
         main_content_area.controls.append(catalogo_content)
         page.update()
 
@@ -227,9 +213,7 @@ def main(page: ft.Page):
 
     # Al inicio, mostrar la pantalla de autenticación
     main_content_area.controls.append(auth_content)
-    page.update() # Asegurar que la pantalla de autenticación se muestre inmediatamente
-
-    # mostrar_catalogo() # Comentar o eliminar esta línea, el catálogo se mostrará después del login
+    page.update() 
 
 
 ft.app(target=main)

@@ -16,7 +16,6 @@ class ComentariosUI(ft.Column):
         self.user_id = user_id # Almacenar el ID del usuario
         self.spacing = 20
 
-        # Referencia solo para el campo de reseña
         self.campo_resena_ref = ft.Ref[ft.TextField]()
         
         # Slider para la valoración
@@ -121,8 +120,7 @@ class ComentariosUI(ft.Column):
         # Obtener el TMDB ID de la película
         tmdb_id = self.pelicula.get("id")
         
-        # --- Lógica para guardar la reseña en la base de datos ---
-        # Usar el id_usuario real recibido
+        # --- Guardar la reseña en la base de datos ---
         if self.user_id is None:
             self.page.snack_bar.content = ft.Text("Error: No hay usuario autenticado para enviar la reseña.")
             self.page.snack_bar.bgcolor = COLOR_ERROR
@@ -140,9 +138,6 @@ class ComentariosUI(ft.Column):
                 if self.campo_resena_ref.current:
                     self.campo_resena_ref.current.value = ""
                 self.valoracion_slider.value = 5
-
-                # Actualizar la página (opcional, si hay una lista de comentarios visible)
-                # self.page.update()
                 
             else:
                 self.page.snack_bar.content = ft.Text("Error al enviar la reseña. Inténtalo de nuevo.")
@@ -153,5 +148,4 @@ class ComentariosUI(ft.Column):
             self.page.snack_bar.bgcolor = COLOR_NARANJA
             self.page.snack_bar.open = True
 
-        # Actualizar la página (si no se actualizó antes por éxito o error)
         self.page.update()

@@ -6,11 +6,12 @@ COLOR_TEXTO = "#FFFFFF"
 COLOR_GRIS_OSCURO = "#1A1A1A"
 
 class PerfilUsuarioContent(ft.Column):
-    def __init__(self, page: ft.Page, user_data: dict, logout_callback):
+    def __init__(self, page: ft.Page, user_data: dict, logout_callback, back_to_inicio_callback):
         super().__init__(expand=True, horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         self.page = page
         self.user_data = user_data
         self.logout_callback = logout_callback
+        self.back_to_inicio_callback = back_to_inicio_callback
 
         self.create_layout()
 
@@ -40,11 +41,22 @@ class PerfilUsuarioContent(ft.Column):
             style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20))
         )
 
+        volver_inicio_button = ft.TextButton(
+            text="Volver al inicio",
+            icon="arrow_back",
+            style=ft.ButtonStyle(
+                color=COLOR_NARANJA,
+                shape=ft.RoundedRectangleBorder(radius=20)
+            ),
+            on_click=lambda e: self.back_to_inicio_callback()
+        )
+
         self.controls = [
             ft.Container(
                 content=ft.Column([
                     user_info,
-                    logout_button
+                    logout_button,
+                    volver_inicio_button
                 ], horizontal_alignment=ft.CrossAxisAlignment.CENTER, spacing=30),
                 padding=ft.padding.all(40),
                 bgcolor=COLOR_GRIS_OSCURO,
@@ -52,4 +64,4 @@ class PerfilUsuarioContent(ft.Column):
                 width=450, # Ancho fijo para el contenedor del perfil
                 shadow=ft.BoxShadow(blur_radius=15, color=COLOR_NARANJA)
             )
-        ] 
+        ]

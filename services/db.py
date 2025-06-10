@@ -1,6 +1,6 @@
 import mysql.connector
 from mysql.connector import Error
-import bcrypt # Importar bcrypt
+import bcrypt 
 
 class Database:
     def __init__(self, host, database, user, password):
@@ -33,7 +33,7 @@ class Database:
         try:
             if not self.connection or not self.connection.is_connected():
                 self.connect()
-            cursor = self.connection.cursor(dictionary=True) # Retorna filas como diccionarios
+            cursor = self.connection.cursor(dictionary=True) 
             cursor.execute(query, params)
             if query.strip().upper().startswith(("INSERT", "UPDATE", "DELETE")):
                 self.connection.commit()
@@ -51,12 +51,10 @@ class Database:
 
     # --- Funciones de seguridad (bcrypt) ---
     def hash_password(self, password):
-        # Genera un salt y hashea la contraseña
         hashed = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         return hashed.decode('utf-8') # Guardar como string utf-8
 
     def check_password(self, password, hashed_password):
-        # Verifica una contraseña con un hash existente
         return bcrypt.checkpw(password.encode('utf-8'), hashed_password.encode('utf-8'))
 
     # --- Funciones específicas para Comentarios ---
@@ -86,7 +84,6 @@ class Database:
         return self.execute_query(query, (id_usuario, tmdb_id, fila, numero_asiento))
 
     def get_entradas_ocupadas_by_tmdb_id(self, tmdb_id):
-        # Asumiendo que queremos asientos ocupados para una película específica
         query = """
         SELECT fila, numero_asiento 
         FROM entradas 
@@ -114,15 +111,12 @@ class Database:
         """
         return self.execute_query(query, (nombre_usuario, email, hashed_password))
 
-
-# Configura tus credenciales de MySQL aquí
-# Asegúrate de que tu base de datos esté corriendo en XAMPP
-# y que tengas un usuario y contraseña configurados.
+# Configuración de la base de datos
 DB_CONFIG = {
     "host": "localhost",
-    "database": "lens", # Cambia esto al nombre de tu base de datos si es diferente
-    "user": "root", # Cambia esto a tu usuario de MySQL
-    "password": "" # Cambia esto a tu contraseña de MySQL
+    "database": "lens", 
+    "user": "root",
+    "password": "" 
 }
 
 # Instancia global de la base de datos

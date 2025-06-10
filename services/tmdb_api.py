@@ -6,8 +6,8 @@ class TMDBApi:
     def __init__(self):
         self.api_key = API_KEY
         self.base_url = "https://api.themoviedb.org/3"
-        self.generos = self.obtener_generos()  # Cargar géneros al iniciar
-        self.LIMITE_PELICULAS = 75  # Número máximo de películas a mostrar
+        self.generos = self.obtener_generos()  
+        self.LIMITE_PELICULAS = 75  
 
     def obtener_generos(self):
         url = f"{self.base_url}/genre/movie/list"
@@ -28,7 +28,6 @@ class TMDBApi:
 
     def obtener_peliculas_populares(self, pagina=1):
         todas_peliculas = []
-        # Obtener páginas necesarias para alcanzar el límite
         for pagina_actual in range(1, 6):
             url = f"{self.base_url}/movie/popular"
             params = {
@@ -66,7 +65,6 @@ class TMDBApi:
 
     def buscar_peliculas(self, query, pagina=1):
         todas_peliculas = []
-        # Obtener páginas necesarias para alcanzar el límite
         for pagina_actual in range(1, 6):
             url = f"{self.base_url}/search/movie"
             params = {

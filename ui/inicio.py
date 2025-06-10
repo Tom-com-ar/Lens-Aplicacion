@@ -7,7 +7,10 @@ COLOR_TEXTO = "#FFFFFF"
 
 class InicioUI(ft.Column):
     def __init__(self, page: ft.Page, on_login_success=None, on_registro_success=None, db=None):
-        super().__init__()
+        super().__init__(
+            controls=self.build(),  # <-- Pasa los controles aquí
+            horizontal_alignment=ft.CrossAxisAlignment.CENTER
+        )
         self.page = page
         self.on_login_success = on_login_success
         self.on_registro_success = on_registro_success
@@ -39,8 +42,6 @@ class InicioUI(ft.Column):
             visible=False
         )
         
-        self.controls = self.build()
-
     def build(self):
         return [
             ft.Container(
@@ -63,6 +64,8 @@ class InicioUI(ft.Column):
                         ),
                     ],
                     horizontal_alignment=ft.CrossAxisAlignment.CENTER,
+                    vertical_alignment=ft.CrossAxisAlignment.CENTER,
+
                     spacing=20,
                 ),
                 padding=40,
@@ -84,12 +87,12 @@ class InicioUI(ft.Column):
             else:
                 self.mensaje_error.value = "Usuario o contraseña incorrectos"
                 self.mensaje_error.visible = True
-                self.page.update()
+                self.update()
         else:
             self.mensaje_error.value = "Por favor complete todos los campos"
             self.mensaje_error.visible = True
-            self.page.update()
-
+            self.update()
+            
     def ir_a_registro(self, e):
         if self.on_registro_success:
             self.on_registro_success(e)

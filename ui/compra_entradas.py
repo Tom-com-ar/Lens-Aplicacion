@@ -19,16 +19,15 @@ class CompraEntradasUI(ft.Column):
         self.pelicula = pelicula
         self.volver_detalle_callback = volver_detalle_callback
         self.user_id = user_id # Almacenar el ID del usuario
-        self.spacing = 40 # Espaciado general
+        self.spacing = 40 
         self.tmdb_api = TMDBApi()
 
         self.asientos_seleccionados = [] # Lista para almacenar los asientos seleccionados
-        self.asientos_seleccionados_text = ft.Text("Asientos seleccionados: Ninguno", color=COLOR_TEXTO, size=14) # Referencia para actualizar el texto
+        self.asientos_seleccionados_text = ft.Text("Asientos seleccionados: Ninguno", color=COLOR_TEXTO, size=14) 
 
         self.create_layout()
 
     def create_layout(self):
-        # Obtener detalles completos de la película
         detalle = self.tmdb_api.obtener_detalle_pelicula(self.pelicula["id"])
         if not detalle:
             detalle = self.pelicula
@@ -38,10 +37,9 @@ class CompraEntradasUI(ft.Column):
         # --- Obtener asientos ocupados de la base de datos ---
         tmdb_id = self.pelicula["id"]
         asientos_ocupados_db = db.get_entradas_ocupadas_by_tmdb_id(tmdb_id)
-        # Convertir la lista de diccionarios a un set de strings para fácil búsqueda
         self.asientos_ocupados_set = {f"{a['fila']}{a['numero_asiento']}" for a in asientos_ocupados_db} if asientos_ocupados_db else set()
 
-        # --- Información de la película (izquierda) ---
+        # --- Información de la película ---
         info_pelicula_col = ft.Container(
             content=ft.Column([
                 ft.Image(src=poster_url, width=200, height=300, border_radius=15, fit=ft.ImageFit.COVER),
@@ -76,7 +74,7 @@ class CompraEntradasUI(ft.Column):
             width=300
         )
 
-        # --- Área de selección de asientos (derecha) ---
+        # --- Área de selección de asientos ---
         pantalla = ft.Container(width=400, height=10, bgcolor=COLOR_GRIS_CLARO, border_radius=5, margin=ft.margin.only(bottom=20))
 
         # Cuadrícula de asientos
@@ -88,7 +86,6 @@ class CompraEntradasUI(ft.Column):
             for j in range(1, 13): # 10 asientos por fila
                 asiento_id = f"{fila_letra}{j}"
                 
-                # Determinar el color inicial del asiento
                 initial_bgcolor = COLOR_OCUPADO if asiento_id in self.asientos_ocupados_set else COLOR_DISPONIBLE
                 
                 asiento_container = ft.Container(
@@ -98,7 +95,6 @@ class CompraEntradasUI(ft.Column):
                     alignment=ft.alignment.center,
                     data=asiento_id,
                     on_click=self.asiento_click,
-                    # Deshabilitar click si el asiento está ocupado
                     disabled=asiento_id in self.asientos_ocupados_set
                 )
                 fila_asientos.controls.append(asiento_container)
@@ -128,7 +124,7 @@ class CompraEntradasUI(ft.Column):
                     self.asientos_seleccionados_text,
                 ], alignment=ft.MainAxisAlignment.CENTER, spacing=5),
 
-                # Botones de acción
+                # Botones
                 ft.Row([
                     ft.ElevatedButton(
                         "Volver",
@@ -152,7 +148,7 @@ class CompraEntradasUI(ft.Column):
             width=500
         )
 
-        # Combinar información de película y área de asientos
+        # Información de película y asientos
         main_row = ft.Row([
             info_pelicula_col,
             area_asientos_col,
@@ -196,7 +192,7 @@ class CompraEntradasUI(ft.Column):
         # Usar el id_usuario real recibido
         if self.user_id is None:
             self.page.snack_bar.content = ft.Text("Error: No hay usuario autenticado para comprar entradas.")
-            self.page.snack_bar.bgcolor = COLOR_ERROR # Define COLOR_ERROR si no existe
+            self.page.snack_bar.bgcolor = COLOR_ERROR
             self.page.snack_bar.open = True
             self.page.update()
             return
@@ -219,12 +215,10 @@ class CompraEntradasUI(ft.Column):
             # Limpiar selección y recargar asientos para mostrar los ocupados
             self.asientos_seleccionados.clear()
             self.asientos_seleccionados_text.value = "Asientos seleccionados: Ninguno"
-            self.create_layout() # Volver a crear el layout para actualizar asientos ocupados
+            self.create_layout() 
         else:
             self.page.snack_bar.content = ft.Text("Error al procesar la compra. Inténtalo de nuevo.")
             self.page.snack_bar.bgcolor = COLOR_NARANJA
             self.page.snack_bar.open = True
         self.page.update()
-
-        # self.page.go("/") # Quitar esto, la navegación se manejará después de la compra
 
