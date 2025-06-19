@@ -239,9 +239,15 @@ class CatalogoContent(ft.Column):
 
     def filtrar_peliculas(self, query=""):
         print("\n=== DEBUG: Iniciando filtrado de películas ===")
-        
         peliculas_filtradas = self.peliculas_catalogo.copy()
-        
+
+        # --- FILTRO POR TEXTO ---
+        if query:
+            query_lower = query.lower()
+            peliculas_filtradas = [
+                p for p in peliculas_filtradas
+                if query_lower in p.get("title", "").lower() or query_lower in p.get("overview", "").lower()
+            ]
 
         # Filtrar por géneros
         if self.filtros_activos["generos"]:
