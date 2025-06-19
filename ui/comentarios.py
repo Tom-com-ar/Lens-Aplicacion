@@ -8,12 +8,13 @@ COLOR_GRIS_CLARO = "#D9D9D9"
 COLOR_ERROR = "#FF0000"
 
 class ComentariosUI(ft.Column):
-    def __init__(self, page: ft.Page, pelicula=None, volver_callback=None, user_id=None):
+    def __init__(self, page, pelicula, user_id, on_volver=None, on_enviar=None):
         super().__init__(expand=True, scroll="auto", horizontal_alignment=ft.CrossAxisAlignment.CENTER)
         self.page = page
         self.pelicula = pelicula
-        self.volver_callback = volver_callback
-        self.user_id = user_id # Almacenar el ID del usuario
+        self.user_id = user_id
+        self.on_volver = on_volver
+        self.on_enviar = on_enviar
         self.spacing = 20
 
         self.campo_resena_ref = ft.Ref[ft.TextField]()
@@ -91,7 +92,7 @@ class ComentariosUI(ft.Column):
 
         boton_volver = ft.ElevatedButton(
             "Volver",
-            on_click=lambda e: self.volver_callback(self.pelicula) if self.volver_callback else None,
+            on_click=lambda e: self.on_volver() if self.on_volver else None,
             bgcolor="#555555",
             color=COLOR_TEXTO,
             style=ft.ButtonStyle(shape=ft.RoundedRectangleBorder(radius=20)),
@@ -108,10 +109,10 @@ class ComentariosUI(ft.Column):
         ]
 
     def enviar_resena(self, e):
-        resena = self.campo_resena_ref.current.value.strip() if self.campo_resena_ref.current else ""
-        valoracion = int(self.valoracion_slider.value)
+        comentario = self.campo_resena_ref.current.value.strip() if self.campo_resena_ref.current else ""
+        puntuacion = int(self.valoracion_slider.value)
 
-        if not resena:
+        if not comentario:
             self.page.snack_bar.content = ft.Text("Por favor, escribe una reseña")
             self.page.snack_bar.bgcolor = COLOR_NARANJA
             self.page.snack_bar.open = True
@@ -129,7 +130,7 @@ class ComentariosUI(ft.Column):
             return
 
         if tmdb_id:
-            rows_affected = db.add_comentario(self.user_id, tmdb_id, resena, valoracion)
+            rows_affected = db.add_comentario(self.user_id, tmdb_id, comentario, puntuacion)
             if rows_affected:
                 self.page.snack_bar.content = ft.Text("¡Reseña enviada con éxito!")
                 self.page.snack_bar.bgcolor = COLOR_NARANJA
@@ -149,3 +150,7 @@ class ComentariosUI(ft.Column):
             self.page.snack_bar.open = True
 
         self.page.update()
+
+        # Llamar callback para volver o actualizar
+        if self.on_enviar:
+            self.on_enviar()

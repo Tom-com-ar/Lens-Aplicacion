@@ -138,44 +138,56 @@ def main(page: ft.Page):
 
     catalogo_content = CatalogoContent(page, tmdb_api, lambda p: mostrar_detalle(p))
 
-    def mostrar_comentarios(pelicula):
-        nonlocal logged_in_user_id
-        if logged_in_user_id is None:
-            page.snack_bar.content = ft.Text("Debes iniciar sesión para dejar un comentario.")
-            page.snack_bar.bgcolor = COLOR_NARANJA # O un color de advertencia
-            page.snack_bar.open = True
-            page.update()
-            return
+    reseña_en_progreso = False
 
-        # Ocultar la barra de búsqueda
-        campo_busqueda.visible = False
-        boton_buscar.visible = False
-        print("Mostrar comentarios para:", pelicula["title"])
+    def mostrar_comentarios(pelicula):
+        nonlocal reseña_en_progreso
+        if reseña_en_progreso:
+            return
+        reseña_en_progreso = True
+
+        def volver():
+            nonlocal reseña_en_progreso
+            reseña_en_progreso = False
+            mostrar_detalle(pelicula)
+
+        def reseña_enviada():
+            mostrar_detalle(pelicula)
+
         main_content_area.controls.clear()
-        comentarios_content = ComentariosUI(page, pelicula, mostrar_detalle, logged_in_user_id) 
+        comentarios_content = ComentariosUI(
+            page, pelicula, logged_in_user_id,
+            on_volver=volver,
+            on_enviar=reseña_enviada
+        )
         main_content_area.controls.append(comentarios_content)
         page.update()
+        reseña_en_progreso = False
+
+    compra_en_progreso = False  # Variable global o de la función main
 
     def mostrar_compra_entradas(pelicula):
-        nonlocal logged_in_user_id
-        if logged_in_user_id is None:
-            page.snack_bar.content = ft.Text("Debes iniciar sesión para comprar entradas.")
-            page.snack_bar.bgcolor = COLOR_NARANJA # O un color de advertencia
-            page.snack_bar.open = True
-            page.update()
-            return
+        nonlocal compra_en_progreso
+        if compra_en_progreso:
+            return  # Ya hay una compra en curso, ignora el nuevo click
+        compra_en_progreso = True
 
-        # Ocultar la barra de búsqueda
         campo_busqueda.visible = False
         boton_buscar.visible = False
-        print("Mostrar compra de entradas para:", pelicula["title"])
         main_content_area.controls.clear()
         compra_entradas_content = CompraEntradasUI(page, pelicula, mostrar_detalle, logged_in_user_id)
         main_content_area.controls.append(compra_entradas_content)
         page.update()
+        compra_en_progreso = False  # Permite otra compra después
+
+    detalle_mostrado = False  # Variable global o de la función main
 
     def mostrar_detalle(pelicula):
-        # Ocultar la barra de búsqueda
+        nonlocal detalle_mostrado
+        if detalle_mostrado:
+            return  # Ya hay un detalle mostrándose, ignora el nuevo click
+        detalle_mostrado = True
+
         campo_busqueda.visible = False
         boton_buscar.visible = False
         main_content_area.controls.clear()
@@ -184,6 +196,7 @@ def main(page: ft.Page):
         )
         main_content_area.controls.append(detalle_content)
         page.update()
+        detalle_mostrado = False  # Permite mostrar otro detalle después
 
     def buscar_peliculas(query):
         if not query:
