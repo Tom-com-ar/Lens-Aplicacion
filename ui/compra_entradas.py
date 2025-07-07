@@ -40,7 +40,7 @@ class CompraEntradasUI(ft.Column):
             ], alignment=ft.MainAxisAlignment.SPACE_BETWEEN)
         )
         if not funciones:
-            self.controls.append(ft.Text("no hay funciones disponibles para esta película.", color=COLOR_TEXTO, size=18))
+            self.controls.append(ft.Text("Por el momento no hay funciones disponibles para esta película.", color=COLOR_TEXTO, size=18))
             self.controls.append(ft.ElevatedButton(
                 "Volver",
                 bgcolor=COLOR_GRIS_OSCURO,
